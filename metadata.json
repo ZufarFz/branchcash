@@ -1,0 +1,8 @@
+{
+  "name": "BranchCash",
+  "description": "Sistem pelaporan, rekonsiliasi non-tunai, dan monitoring kas seluruh cabang dengan approval dan audit trail.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
