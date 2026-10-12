@@ -148,7 +148,7 @@ export const masterDataService = {
     try {
       const { data, error } = await supabase
         .from('banks')
-        .select('id, code, name, is_active')
+        .select('id, name, is_active')
         .order('name', { ascending: true });
 
       if (error) {
@@ -164,8 +164,8 @@ export const masterDataService = {
 
       const mapped = data.map((b: any) => ({
         id: b.id,
-        code: b.code,
         name: b.name,
+        code: b.name,
         isActive: b.is_active ?? true,
       }));
       cachedBanksListRef.list = mapped;
@@ -188,7 +188,6 @@ export const masterDataService = {
         .from('banks')
         .upsert({
           id: validId,
-          code: bank.code.toUpperCase().trim(),
           name: bank.name.trim(),
           is_active: bank.isActive ?? true,
         }, { onConflict: 'id' });
@@ -209,7 +208,7 @@ export const masterDataService = {
     try {
       const { data, error } = await supabase
         .from('payment_methods')
-        .select('id, code, name, is_active')
+        .select('id, name, is_active')
         .order('name', { ascending: true });
 
       if (error) {
@@ -225,8 +224,8 @@ export const masterDataService = {
 
       const mapped = data.map((p: any) => ({
         id: p.id,
-        code: p.code,
         name: p.name,
+        code: p.name,
         isActive: p.is_active ?? true,
       }));
       cachedMethodsListRef.list = mapped;
@@ -249,7 +248,6 @@ export const masterDataService = {
         .from('payment_methods')
         .upsert({
           id: validId,
-          code: method.code.toUpperCase().trim(),
           name: method.name.trim(),
           is_active: method.isActive ?? true,
         }, { onConflict: 'id' });

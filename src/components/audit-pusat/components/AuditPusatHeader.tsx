@@ -19,7 +19,8 @@ interface AuditPusatHeaderProps {
   rejectedCount: number;
   totalPhysicalAll: number;
   pendingUsersCount: number;
-  onOpenMasterModal: () => void;
+  onOpenMasterModal?: () => void;
+  onNavigateToMasterData?: () => void;
   onOpenUserModal: () => void;
   onExportCSV: () => void;
   onPrint: () => void;
@@ -36,10 +37,14 @@ export const AuditPusatHeader: React.FC<AuditPusatHeaderProps> = ({
   totalPhysicalAll,
   pendingUsersCount,
   onOpenMasterModal,
+  onNavigateToMasterData,
+  onNavigateToUserManagement,
   onOpenUserModal,
   onExportCSV,
   onPrint,
 }) => {
+  const isSuperAdmin = currentUser.role === 'AUDIT_PUSAT_ADMIN';
+
   return (
     <div className="space-y-4">
       {/* Role restriction banner if non-Audit Pusat is viewing this page */}
@@ -73,19 +78,11 @@ export const AuditPusatHeader: React.FC<AuditPusatHeaderProps> = ({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            id="btn-master-data"
-            type="button"
-            onClick={onOpenMasterModal}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-indigo-200 bg-indigo-50/80 hover:bg-indigo-100 text-indigo-700 shadow-xs transition-colors cursor-pointer"
-          >
-            <Database className="w-4 h-4 text-indigo-600" />
-            <span>Master Data</span>
-          </button>
+          {/* Tombol Manajemen Pengguna (Audit Pusat & Admin) */}
           <button
             id="btn-user-approvals"
             type="button"
-            onClick={onOpenUserModal}
+            onClick={onNavigateToUserManagement || onOpenUserModal}
             className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg shadow-xs transition-all cursor-pointer ${
               pendingUsersCount > 0
                 ? 'bg-amber-600 hover:bg-amber-700 text-white animate-pulse'
@@ -93,13 +90,26 @@ export const AuditPusatHeader: React.FC<AuditPusatHeaderProps> = ({
             }`}
           >
             <UserCheck className="w-4 h-4" />
-            <span>Persetujuan Akun</span>
+            <span>Manajemen Pengguna</span>
             {pendingUsersCount > 0 && (
               <span className="px-1.5 py-0.2 rounded-full bg-white text-amber-800 text-[10px] font-bold">
                 {pendingUsersCount}
               </span>
             )}
           </button>
+
+          {/* Tombol Master Data (Khusus Super Admin AUDIT_PUSAT_ADMIN) */}
+          {isSuperAdmin && (
+            <button
+              id="btn-master-data"
+              type="button"
+              onClick={onNavigateToMasterData || onOpenMasterModal}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-indigo-200 bg-indigo-50/80 hover:bg-indigo-100 text-indigo-700 shadow-xs transition-colors cursor-pointer"
+            >
+              <Database className="w-4 h-4 text-indigo-600" />
+              <span>Master Data</span>
+            </button>
+          )}
           <button
             id="btn-export-reports-csv"
             type="button"

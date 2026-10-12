@@ -8,14 +8,12 @@ export const BankMasterTab: React.FC = () => {
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const handleOpenAdd = () => {
     setEditingId(null);
-    setCode('');
     setName('');
     setIsEditing(true);
     setFeedback(null);
@@ -23,7 +21,6 @@ export const BankMasterTab: React.FC = () => {
 
   const handleOpenEdit = (bank: BankOption) => {
     setEditingId(bank.id);
-    setCode(bank.code);
     setName(bank.name);
     setIsEditing(true);
     setFeedback(null);
@@ -31,8 +28,8 @@ export const BankMasterTab: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code.trim() || !name.trim()) {
-      setFeedback({ type: 'error', text: 'Kode dan nama bank wajib diisi.' });
+    if (!name.trim()) {
+      setFeedback({ type: 'error', text: 'Nama bank wajib diisi.' });
       return;
     }
 
@@ -41,7 +38,6 @@ export const BankMasterTab: React.FC = () => {
 
     const bankPayload: BankOption = {
       id: editingId || `bank-${Date.now()}`,
-      code: code.trim().toUpperCase(),
       name: name.trim(),
       isActive: editingId ? (banks.find(b => b.id === editingId)?.isActive ?? true) : true,
     };
@@ -50,7 +46,7 @@ export const BankMasterTab: React.FC = () => {
     setIsSubmitting(false);
 
     if (res.success) {
-      setFeedback({ type: 'success', text: `Bank ${bankPayload.code} berhasil disimpan.` });
+      setFeedback({ type: 'success', text: `Bank ${bankPayload.name} berhasil disimpan.` });
       setTimeout(() => {
         setIsEditing(false);
         setFeedback(null);
@@ -113,33 +109,18 @@ export const BankMasterTab: React.FC = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                Kode Bank (Singkatan)
-              </label>
-              <input
-                type="text"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="Contoh: BCA, MANDIRI"
-                className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg uppercase font-mono font-bold focus:ring-1 focus:ring-indigo-500 focus:outline-hidden"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                Nama Lengkap Bank
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Contoh: Bank Central Asia"
-                className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-hidden"
-                required
-              />
-            </div>
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+              Nama Bank / Mesin EDC (Unik)
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Contoh: BCA, Bank Central Asia, Mandiri"
+              className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-hidden"
+              required
+            />
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
@@ -169,7 +150,6 @@ export const BankMasterTab: React.FC = () => {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50/80 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-              <th className="py-2.5 px-3">Kode</th>
               <th className="py-2.5 px-3">Nama Bank</th>
               <th className="py-2.5 px-3">Status</th>
               <th className="py-2.5 px-3 text-right">Aksi</th>
@@ -178,7 +158,7 @@ export const BankMasterTab: React.FC = () => {
           <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
             {banks.length === 0 ? (
               <tr>
-                <td colSpan={4} className="py-8 text-center text-slate-400">
+                <td colSpan={3} className="py-8 text-center text-slate-400">
                   Belum ada data master bank.
                 </td>
               </tr>
@@ -187,10 +167,7 @@ export const BankMasterTab: React.FC = () => {
                 const active = bank.isActive ?? true;
                 return (
                   <tr key={bank.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-2.5 px-3 font-mono font-bold text-slate-900">
-                      {bank.code}
-                    </td>
-                    <td className="py-2.5 px-3 font-medium">
+                    <td className="py-2.5 px-3 font-medium text-slate-900">
                       {bank.name}
                     </td>
                     <td className="py-2.5 px-3">

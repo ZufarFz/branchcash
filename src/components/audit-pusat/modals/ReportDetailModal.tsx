@@ -193,32 +193,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
           )}
         </div>
 
-        {/* Review Notes from SPV & Kacab */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200">
-            <span className="font-bold text-amber-900 block">Review SPV Cabang:</span>
-            <p className="text-amber-800 mt-1 italic">
-              {report.spvNotes || 'Belum ada catatan review SPV.'}
-            </p>
-            {report.spvReviewedBy && (
-              <span className="text-[10px] text-amber-600 block mt-1">
-                Oleh: {report.spvReviewedBy} ({report.spvReviewedAt})
-              </span>
-            )}
-          </div>
 
-          <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-200">
-            <span className="font-bold text-blue-900 block">Review Kepala Cabang:</span>
-            <p className="text-blue-800 mt-1 italic">
-              {report.kacabNotes || 'Belum ada catatan review Kepala Cabang.'}
-            </p>
-            {report.kacabReviewedBy && (
-              <span className="text-[10px] text-blue-600 block mt-1">
-                Oleh: {report.kacabReviewedBy} ({report.kacabReviewedAt})
-              </span>
-            )}
-          </div>
-        </div>
 
         {/* Rejection notice if rejected */}
         {report.status === 'REJECTED' && report.notes && (

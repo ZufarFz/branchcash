@@ -21,7 +21,8 @@ Sistem pelaporan, monitoring kas fisik, mutasi kas silang, dan rekonsiliasi non-
 | **`KEPALA_CABANG`** | Cabang | Verifikasi laporan cabang sebelum diteruskan ke pusat | Dilarang mengubah status laporan ke `APPROVED`. |
 | **`AUDIT_CABANG`** | Cabang | Penunjukan Kasir Bandar harian, input independen 2 nilai Computer Cash (Tunai & Non-Tunai POS), monitoring varians fisik vs POS | Dilarang approval final / reject laporan kasir. |
 | **`PERBANKAN`** | Kantor Pusat | Monitoring mutasi rekening koran dan rekonsiliasi status transaksi non-tunai (`MATCHED` / `UNMATCHED`) | Dilarang input kas fisik cabang. |
-| **`AUDIT_PUSAT`** | Kantor Pusat | Super Admin: Approval final (`APPROVED`), penolakan (`REJECTED`), Force Edit audit, pengelolaan Master Data (Cabang, Bank, Denominasi, Metode Pembayaran) | Wajib menyertakan alasan formal pada setiap tindakan audit. |
+| **`AUDIT_PUSAT`** | Kantor Pusat | Review berkas closing cabang, Approval final (`APPROVED`), Penolakan (`REJECTED`), Force Edit audit | Dilarang mengelola Master Data & Persetujuan Akun. |
+| **`AUDIT_PUSAT_ADMIN`** | Kantor Pusat | **Super Admin**: Semua wewenang Audit Pusat + Pengelolaan Master Data (Cabang, Bank, Denom, Metode) + Persetujuan Akun Pengguna | Wajib menyertakan alasan formal pada setiap tindakan audit. |
 
 ---
 
@@ -56,8 +57,12 @@ src/
 ├── types/                  # Definisi TypeScript interface & enum PRD
 └── utils/                  # Helper format mata uang, tanggal, & generator
 supabase/
-├── 01_all_in_one_master.sql # Setup master database lengkap (eksekusi dari nol)
-└── 02_latest_migration.sql  # Log migrasi delta berurutan
+├── 01_extensions_and_enums.sql   # Ekstensi UUID, Enum, & helper auth
+├── 02_master_tables_and_rls.sql   # Tabel master & RLS (branches, users, denoms, dll)
+├── 03_transaction_tables_and_rls.sql # Tabel transaksi & RLS (reports, sessions, transfers, dll)
+├── 04_triggers_and_functions.sql  # Stored procedure, triggers kalkulasi, & auto-link
+├── 05_seed_data.sql              # Data awal resmi cabang, bank, denoms
+└── 06_latest_migration.sql        # Log migrasi delta kumulatif
 ```
 
 ---
@@ -88,7 +93,7 @@ supabase/
    ```
 
 4. Setup Database di Supabase SQL Editor:
-   - Jalankan seluruh isi skrip [supabase/01_all_in_one_master.sql](supabase/01_all_in_one_master.sql) di Supabase SQL Editor untuk inisialisasi tabel, triggers, enum, RLS policies, dan master data.
+   - Jalankan berkas skrip [supabase/](supabase/) secara berurutan dari `01_extensions_and_enums.sql` hingga `05_seed_data.sql` di Supabase SQL Editor untuk inisialisasi tabel, triggers, enum, RLS policies, dan master data dari nol.
 
 5. Jalankan Development Server:
    ```bash

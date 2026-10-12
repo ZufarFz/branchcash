@@ -8,11 +8,7 @@ export const useAuthState = (
   refreshFromSupabase: () => Promise<void>
 ) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('branchcash_auth_active') === 'true';
-    } catch {
-      return false;
-    }
+    try { return localStorage.getItem('branchcash_auth_active') === 'true'; } catch { return false; }
   });
   const [authLoading, setAuthLoading] = useState<boolean>(true);
 
@@ -20,9 +16,7 @@ export const useAuthState = (
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.USERS);
       if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.warn('Error reading saved users', e);
-    }
+    } catch {}
     return [];
   });
 
@@ -30,19 +24,12 @@ export const useAuthState = (
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.USER);
       if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.warn('Error reading saved user', e);
-    }
+    } catch {}
     return INITIAL_EMPTY_USER;
   });
 
-  // Sync currentUser to localStorage
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(currentUser));
-    } catch (e) {
-      console.error(e);
-    }
+    try { localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(currentUser)); } catch {}
   }, [currentUser]);
 
   // Check Supabase Auth session on initialization & listen to auth state changes
@@ -163,9 +150,10 @@ export const useAuthState = (
   const approveUser = async (userId: string): Promise<{ success: boolean; error?: string }> => {
     setIsSyncing(true);
     try {
-      const res = await supabaseService.updateUserStatus(userId, 'ACTIVE');
+      const target = allUsers.find((u) => u.id === userId);
+      const res = await supabaseService.updateUserStatus(userId, 'ACTIVE', currentUser.role, target?.role);
       if (res.success) {
-        setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'ACTIVE' } : u));
+        setAllUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, status: 'ACTIVE' } : u)));
       }
       return res;
     } catch (e: any) {
@@ -178,9 +166,10 @@ export const useAuthState = (
   const rejectUser = async (userId: string): Promise<{ success: boolean; error?: string }> => {
     setIsSyncing(true);
     try {
-      const res = await supabaseService.updateUserStatus(userId, 'INACTIVE');
+      const target = allUsers.find((u) => u.id === userId);
+      const res = await supabaseService.updateUserStatus(userId, 'INACTIVE', currentUser.role, target?.role);
       if (res.success) {
-        setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'INACTIVE' } : u));
+        setAllUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, status: 'INACTIVE' } : u)));
       }
       return res;
     } catch (e: any) {
@@ -192,9 +181,7 @@ export const useAuthState = (
 
   const logout = async () => {
     try {
-      if (supabaseService.isConfigured()) {
-        await supabaseService.signOut();
-      }
+      if (supabaseService.isConfigured()) await supabaseService.signOut();
     } catch (e) {
       console.warn('Sign out warning:', e);
     } finally {
@@ -204,14 +191,10 @@ export const useAuthState = (
       sessionStorage.clear();
       try {
         for (let i = localStorage.length - 1; i >= 0; i--) {
-          const key = localStorage.key(i);
-          if (key && (key.startsWith('sb-') || key.includes('supabase') || key.includes('auth'))) {
-            localStorage.removeItem(key);
-          }
+          const k = localStorage.key(i);
+          if (k && (k.startsWith('sb-') || k.includes('auth'))) localStorage.removeItem(k);
         }
-      } catch (err) {
-        console.warn('Error clearing auth tokens:', err);
-      }
+      } catch {}
       setCurrentUser(INITIAL_EMPTY_USER);
     }
   };
@@ -221,6 +204,70 @@ export const useAuthState = (
     setIsAuthenticated(true);
     localStorage.setItem('branchcash_auth_active', 'true');
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+  };
+
+  const updateProfile = async (
+    name: string, 
+    currentPassword: string, 
+    newPassword?: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    setIsSyncing(true);
+    try {
+      const res = await supabaseService.updateProfile(currentUser.id, currentUser.email, name, currentPassword, newPassword);
+      if (res.success) {
+        const updated = { ...currentUser, name: name.trim() };
+        setCurrentUser(updated);
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updated));
+        setAllUsers((prev) => prev.map((u) => (u.id === currentUser.id ? { ...u, name: name.trim() } : u)));
+      }
+      return res;
+    } catch (e: any) {
+      return { success: false, error: e?.message || 'Gagal memperbarui profil.' };
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const adminUpdateUser = async (
+    userId: string,
+    data: { name: string; role: UserRole; branchId?: string | null; status: 'PENDING' | 'ACTIVE' | 'INACTIVE' },
+    targetRole?: UserRole
+  ): Promise<{ success: boolean; error?: string }> => {
+    setIsSyncing(true);
+    try {
+      const res = await supabaseService.adminUpdateUser(userId, data, currentUser.role, targetRole);
+      if (res.success) {
+        setAllUsers((prev) =>
+          prev.map((u) =>
+            u.id === userId
+              ? {
+                  ...u,
+                  name: data.name.trim(),
+                  role: data.role,
+                  branchId: data.branchId || undefined,
+                  status: data.status,
+                }
+              : u
+          )
+        );
+        if (currentUser.id === userId) {
+          const updatedSelf = {
+            ...currentUser,
+            name: data.name.trim(),
+            role: data.role,
+            branchId: data.branchId || undefined,
+            status: data.status,
+          };
+          setCurrentUser(updatedSelf);
+          localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedSelf));
+        }
+      }
+      return res;
+    } catch (e: any) {
+      return { success: false, error: e?.message || 'Gagal memperbarui data pengguna.' };
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   return {
@@ -235,6 +282,8 @@ export const useAuthState = (
     register,
     approveUser,
     rejectUser,
+    updateProfile,
+    adminUpdateUser,
     logout,
     quickDevLogin,
   };

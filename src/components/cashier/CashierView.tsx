@@ -95,10 +95,6 @@ export const CashierView: React.FC<CashierViewProps> = ({
 
   const ensureActiveReport = (): CashReport => {
     if (activeReport) return activeReport;
-    if (!transfers.currentSession) {
-      alert('Sesi kas cabang untuk tanggal ini belum dibuka oleh Audit Cabang. Mohon tunggu penunjukan Kasir Bandar.');
-      throw new Error('Sesi kas cabang belum dibuka.');
-    }
     return createReport(selectedDate);
   };
 

@@ -12,7 +12,11 @@ import { ForceEditModal } from './modals/ForceEditModal';
 import { UserApprovalModal } from './modals/UserApprovalModal';
 import { MasterDataModal } from './master/MasterDataModal';
 
-export const AuditPusatView: React.FC<{ onNavigateToAuditLog?: () => void }> = () => {
+export const AuditPusatView: React.FC<{ 
+  onNavigateToAuditLog?: () => void;
+  onNavigateToMasterData?: () => void;
+  onNavigateToUserManagement?: () => void;
+}> = ({ onNavigateToMasterData, onNavigateToUserManagement }) => {
   const { 
     currentUser, 
     reports, 
@@ -76,16 +80,25 @@ export const AuditPusatView: React.FC<{ onNavigateToAuditLog?: () => void }> = (
   const totalPhysicalAll = reports.reduce((acc, curr) => acc + curr.totalPhysical, 0);
   const pendingUsersCount = allUsers.filter(u => u.status === 'PENDING').length;
 
-  const isAuditPusat = currentUser.role === 'AUDIT_PUSAT';
+  const isAuditPusat = currentUser.role === 'AUDIT_PUSAT' || currentUser.role === 'AUDIT_PUSAT_ADMIN';
+  const isSuperAdmin = currentUser.role === 'AUDIT_PUSAT_ADMIN';
 
   // Handlers for user approvals
   const handleApproveUser = async (userId: string) => {
+    if (!isAuditPusat) {
+      alert('Hanya role Audit Pusat yang berwenang menyetujui akun pendaftar.');
+      return;
+    }
     setProcessingUserId(userId);
     await approveUser(userId);
     setProcessingUserId(null);
   };
 
   const handleRejectUser = async (userId: string) => {
+    if (!isAuditPusat) {
+      alert('Hanya role Audit Pusat yang berwenang menolak akun pendaftar.');
+      return;
+    }
     setProcessingUserId(userId);
     await rejectUser(userId);
     setProcessingUserId(null);
@@ -183,6 +196,8 @@ export const AuditPusatView: React.FC<{ onNavigateToAuditLog?: () => void }> = (
         rejectedCount={rejectedCount}
         totalPhysicalAll={totalPhysicalAll}
         pendingUsersCount={pendingUsersCount}
+        onNavigateToMasterData={onNavigateToMasterData}
+        onNavigateToUserManagement={onNavigateToUserManagement}
         onOpenMasterModal={() => setIsMasterDataModalOpen(true)}
         onOpenUserModal={() => setIsUserModalOpen(true)}
         onExportCSV={() => exportReportsToCSV(filteredReports)}

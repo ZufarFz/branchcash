@@ -47,9 +47,6 @@ export const useReportMutations = (
     const activeSession = cashSessionsRef.current.find(
       s => s.branchId === branch.id && s.businessDate === businessDate
     );
-    if (!activeSession) {
-      throw new Error('Sesi kas cabang untuk tanggal ini belum dibuka. Menunggu penunjukan Kasir Bandar oleh Audit Cabang.');
-    }
 
     const dateParts = businessDate.split('-');
     const yy = dateParts[0].length >= 4 ? dateParts[0].slice(-2) : dateParts[0];
@@ -78,7 +75,7 @@ export const useReportMutations = (
 
     const newReport: CashReport = {
       id: generateUUID(),
-      cashSessionId: activeSession.id,
+      cashSessionId: activeSession ? activeSession.id : undefined,
       reportNumber,
       businessDate,
       branchId: branch.id,

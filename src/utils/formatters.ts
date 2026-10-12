@@ -126,6 +126,20 @@ export function getRoleDetails(role: UserRole) {
         color: 'bg-rose-50 text-rose-700 border-rose-200',
         description: 'Kewenangan approval final, reject, force edit & audit log',
       };
+    case 'AUDIT_PUSAT_ADMIN':
+      return {
+        label: 'Super Admin',
+        tag: 'Kantor Pusat',
+        color: 'bg-purple-50 text-purple-700 border-purple-200',
+        description: 'Super Admin: Akses penuh approval, kelola master data, & persetujuan akun',
+      };
+    default:
+      return {
+        label: (role as string) || 'Pengguna',
+        tag: 'Sistem',
+        color: 'bg-slate-50 text-slate-700 border-slate-200',
+        description: 'Pengguna sistem BranchCash',
+      };
   }
 }
 

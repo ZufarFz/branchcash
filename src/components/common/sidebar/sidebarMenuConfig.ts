@@ -7,20 +7,28 @@ import {
   Calculator, 
   Store,
   ArrowLeftRight,
-  Crown
+  Crown,
+  Database,
+  Users,
+  UserCircle,
+  Receipt
 } from 'lucide-react';
 import { UserRole } from '../../../types';
 
 export type SidebarTab = 
   | 'admin-pusat' 
+  | 'user-management'
+  | 'master-data'
   | 'dashboard-cabang' 
   | 'input-tunai' 
   | 'input-non-tunai' 
   | 'mutasi-kas'
   | 'audit-cabang-pos' 
+  | 'kas-operasional'
   | 'penunjukan-bandar'
   | 'perbankan' 
-  | 'audit-log';
+  | 'audit-log'
+  | 'profile';
 
 export interface MenuItemConfig {
   id: SidebarTab;
@@ -42,7 +50,8 @@ export const getSidebarMenuSections = (
   pendingApprovalCount: number,
   allNonCashCount: number,
   totalAuditLogs: number,
-  pendingTransferConfirmCount: number
+  pendingTransferConfirmCount: number,
+  pendingUsersCount: number = 0
 ): MenuSectionConfig[] => {
   return [
     {
@@ -108,6 +117,15 @@ export const getSidebarMenuSections = (
           badgeColor: 'bg-purple-100 text-purple-800 border-purple-200',
         },
         {
+          id: 'kas-operasional',
+          label: 'Kas Operasional Kasir',
+          shortLabel: 'Kas Ops',
+          description: 'Pencatatan kas operasional non-POS kasir',
+          icon: Receipt,
+          badge: 'OPS',
+          badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+        },
+        {
           id: 'penunjukan-bandar',
           label: 'Penunjukan Kasir Bandar',
           shortLabel: 'Kasir Bandar',
@@ -121,6 +139,24 @@ export const getSidebarMenuSections = (
     {
       title: 'Pusat & Rekonsiliasi',
       items: [
+        {
+          id: 'user-management',
+          label: 'Manajemen Pengguna',
+          shortLabel: 'Pengguna',
+          description: 'Kelola akun & persetujuan pendaftaran',
+          icon: Users,
+          badge: pendingUsersCount > 0 ? `${pendingUsersCount} Menunggu` : null,
+          badgeColor: 'bg-amber-100 text-amber-900 border-amber-300 font-bold',
+        },
+        {
+          id: 'master-data',
+          label: 'Pengelolaan Master Data',
+          shortLabel: 'Master Data',
+          description: 'Pusat pecahan, bank, metode & cabang',
+          icon: Database,
+          badge: null,
+          badgeColor: '',
+        },
         {
           id: 'perbankan',
           label: 'Rekonsiliasi Perbankan',
@@ -138,6 +174,20 @@ export const getSidebarMenuSections = (
           icon: History,
           badge: totalAuditLogs > 0 ? `${totalAuditLogs}` : null,
           badgeColor: 'bg-slate-100 text-slate-700 border-slate-200',
+        },
+      ],
+    },
+    {
+      title: 'Akun & Pengaturan',
+      items: [
+        {
+          id: 'profile',
+          label: 'Profil Pengguna',
+          shortLabel: 'Profil',
+          description: 'Kelola nama & kata sandi akun Anda',
+          icon: UserCircle,
+          badge: null,
+          badgeColor: '',
         },
       ],
     },

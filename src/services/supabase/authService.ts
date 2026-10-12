@@ -12,6 +12,8 @@ export const authService = {
   fetchUsersList: authUserAdminService.fetchUsersList.bind(authUserAdminService),
   fetchUsers: authUserAdminService.fetchUsers.bind(authUserAdminService),
   updateUserStatus: authUserAdminService.updateUserStatus.bind(authUserAdminService),
+  updateProfile: authUserAdminService.updateProfile.bind(authUserAdminService),
+  adminUpdateUser: authUserAdminService.adminUpdateUser.bind(authUserAdminService),
 };
 
 export { authLoginService, authUserAdminService };

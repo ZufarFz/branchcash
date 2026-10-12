@@ -17,7 +17,7 @@ export const useAuditApprovalActions = (
 ) => {
   // Approve Report
   const approveReport = async (reportId: string): Promise<boolean> => {
-    if (currentUser.role !== 'AUDIT_CABANG' && currentUser.role !== 'AUDIT_PUSAT') {
+    if (currentUser.role !== 'AUDIT_CABANG' && currentUser.role !== 'AUDIT_PUSAT' && currentUser.role !== 'AUDIT_PUSAT_ADMIN') {
       return false;
     }
 
@@ -47,7 +47,7 @@ export const useAuditApprovalActions = (
 
   // Reject Report
   const rejectReport = async (reportId: string, reason: string): Promise<boolean> => {
-    if (currentUser.role !== 'AUDIT_CABANG' && currentUser.role !== 'AUDIT_PUSAT') {
+    if (currentUser.role !== 'AUDIT_CABANG' && currentUser.role !== 'AUDIT_PUSAT' && currentUser.role !== 'AUDIT_PUSAT_ADMIN') {
       return false;
     }
 
@@ -78,7 +78,7 @@ export const useAuditApprovalActions = (
 
   // Update Report Status
   const updateReportStatus = async (reportId: string, status: ReportStatus, reason?: string): Promise<boolean> => {
-    if (currentUser.role !== 'AUDIT_CABANG' && currentUser.role !== 'AUDIT_PUSAT') {
+    if (currentUser.role !== 'AUDIT_CABANG' && currentUser.role !== 'AUDIT_PUSAT' && currentUser.role !== 'AUDIT_PUSAT_ADMIN') {
       return false;
     }
 
@@ -121,7 +121,7 @@ export const useAuditApprovalActions = (
     }, 
     reason: string
   ): boolean => {
-    if (currentUser.role !== 'AUDIT_PUSAT' || !reason || reason.trim() === '') {
+    if ((currentUser.role !== 'AUDIT_PUSAT' && currentUser.role !== 'AUDIT_PUSAT_ADMIN') || !reason || reason.trim() === '') {
       return false;
     }
 

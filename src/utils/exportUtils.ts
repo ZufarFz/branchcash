@@ -18,10 +18,7 @@ export function exportReportsToCSV(reports: CashReport[], filename = 'BranchCash
     'Computer Cash (POS)',
     'Selisih / Variance',
     'Input Computer Cash Oleh',
-    'Review SPV',
-    'Review Kacab',
     'Verifikasi Oleh',
-    'Tanggal Submit',
   ];
 
   const rows = reports.map((r) => [
@@ -37,10 +34,7 @@ export function exportReportsToCSV(reports: CashReport[], filename = 'BranchCash
     r.computerCashTotal ?? 'N/A',
     r.variance ?? 'N/A',
     `"${r.computerCashEnteredBy || '-'}"`,
-    `"${r.spvReviewedBy || '-'}"`,
-    `"${r.kacabReviewedBy || '-'}"`,
     `"${r.verifiedBy || '-'}"`,
-    `"${r.submittedDate || '-'}"`,
   ]);
 
   const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');

@@ -21,7 +21,7 @@ export const PenunjukanBandarTab: React.FC<PenunjukanBandarTabProps> = ({
     updateCashSessionBandar 
   } = useApp();
 
-  const isAuditCabangRole = currentUser.role === 'AUDIT_CABANG' || currentUser.role === 'AUDIT_PUSAT';
+  const isAuditCabangRole = currentUser.role === 'AUDIT_CABANG' || currentUser.role === 'AUDIT_PUSAT' || currentUser.role === 'AUDIT_PUSAT_ADMIN';
   const currentBranchId = currentUser.branchId || currentBranch?.id;
 
   const [internalDate, setInternalDate] = useState<string>(() => {
@@ -54,11 +54,7 @@ export const PenunjukanBandarTab: React.FC<PenunjukanBandarTabProps> = ({
 
   const isTargetSessionLocked = useMemo(() => {
     if (!targetSession) return false;
-    return Boolean(
-      targetSession.hasTransactions || 
-      (targetSession.transferCount !== undefined && targetSession.transferCount > 0) ||
-      (targetSession.reportCount !== undefined && targetSession.reportCount > 0)
-    );
+    return Boolean(targetSession.transferCount !== undefined && targetSession.transferCount > 0);
   }, [targetSession]);
 
   const handleSaveBandar = async (selectedBandarId: string) => {

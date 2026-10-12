@@ -24,9 +24,6 @@ export const useBranchReviewActions = (
       const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
       const updated: CashReport = {
         ...r,
-        spvReviewedAt: now,
-        spvReviewedBy: currentUser.name,
-        spvNotes: notes,
         updatedDate: now,
       };
 
@@ -46,9 +43,6 @@ export const useBranchReviewActions = (
       const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
       const updated: CashReport = {
         ...r,
-        kacabReviewedAt: now,
-        kacabReviewedBy: currentUser.name,
-        kacabNotes: notes,
         updatedDate: now,
       };
 

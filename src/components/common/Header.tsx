@@ -15,7 +15,10 @@ import {
   RefreshCw,
   LogOut,
   ArrowLeftRight,
-  UserCheck
+  UserCheck,
+  Database,
+  Users,
+  UserCircle
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -59,6 +62,12 @@ export const Header: React.FC<HeaderProps> = ({
         return { label: 'Monitoring Non-Tunai', icon: Landmark };
       case 'audit-log':
         return { label: 'Audit Trail & Log', icon: History };
+      case 'master-data':
+        return { label: 'Pengelolaan Master Data', icon: Database };
+      case 'user-management':
+        return { label: 'Manajemen Pengguna', icon: Users };
+      case 'profile':
+        return { label: 'Profil Pengguna', icon: UserCircle };
       default:
         return { label: 'Dashboard', icon: Store };
     }
@@ -131,12 +140,17 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="hidden md:block h-3.5 w-px bg-slate-200" />
 
                 {/* User Name & Role */}
-                <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('profile')}
+                  className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer text-left"
+                  title="Klik untuk membuka Pengaturan Profil"
+                >
                   <span className="font-semibold text-slate-800 truncate max-w-[130px]">
                     {currentUser.name}
                   </span>
                   <RoleBadge role={currentUser.role} size="sm" />
-                </div>
+                </button>
               </div>
 
               {/* Refresh Data Button */}

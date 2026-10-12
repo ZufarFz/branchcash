@@ -57,7 +57,7 @@ export const useCashSessionState = (
     bandarUserId: string;
     notes?: string;
   }): Promise<{ success: boolean; session?: BranchCashSession; error?: string }> => {
-    if (currentUser.role !== 'AUDIT_CABANG' && currentUser.role !== 'AUDIT_PUSAT') {
+    if (currentUser.role !== 'AUDIT_CABANG' && currentUser.role !== 'AUDIT_PUSAT' && currentUser.role !== 'AUDIT_PUSAT_ADMIN') {
       return { success: false, error: 'Hanya role Audit Cabang atau Audit Pusat yang berwenang menunjuk Kasir Bandar.' };
     }
 

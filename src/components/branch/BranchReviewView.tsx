@@ -29,9 +29,7 @@ export const BranchReviewView: React.FC = () => {
 
   const handleOpenReview = (report: CashReport) => {
     setSelectedReport(report);
-    setReviewNoteInput(
-      isSpv ? (report.spvNotes || '') : (report.kacabNotes || '')
-    );
+    setReviewNoteInput('');
     setIsReviewModalOpen(true);
   };
 
@@ -122,14 +120,13 @@ export const BranchReviewView: React.FC = () => {
                 <th className="py-3 px-4 text-right">Kas Fisik</th>
                 <th className="py-3 px-4 text-right">POS / Comp Cash</th>
                 <th className="py-3 px-4 text-center">Selisih</th>
-                <th className="py-3 px-4">Status Review Cabang</th>
                 <th className="py-3 px-4 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {branchReports.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-slate-400">
+                  <td colSpan={8} className="py-8 text-center text-slate-400">
                     Belum ada laporan kas dari kasir di cabang ini.
                   </td>
                 </tr>
@@ -158,26 +155,6 @@ export const BranchReviewView: React.FC = () => {
                     </td>
                     <td className="py-3 px-4 text-center">
                       <VarianceBadge variance={report.variance} size="sm" />
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1 text-[11px]">
-                          <span className="font-semibold text-slate-600">SPV:</span>
-                          {report.spvReviewedBy ? (
-                            <span className="text-emerald-700 font-medium">✓ Sudah direview</span>
-                          ) : (
-                            <span className="text-slate-400">Belum</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 text-[11px]">
-                          <span className="font-semibold text-slate-600">Kacab:</span>
-                          {report.kacabReviewedBy ? (
-                            <span className="text-emerald-700 font-medium">✓ Terverifikasi</span>
-                          ) : (
-                            <span className="text-slate-400">Belum</span>
-                          )}
-                        </div>
-                      </div>
                     </td>
                     <td className="py-3 px-4 text-center">
                       <button

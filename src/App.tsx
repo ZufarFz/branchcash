@@ -7,6 +7,9 @@ import { AuditCabangView } from './components/audit-cabang/AuditCabangView';
 import { BranchReviewView } from './components/branch/BranchReviewView';
 import { PerbankanView } from './components/perbankan/PerbankanView';
 import { AuditPusatView } from './components/audit-pusat/AuditPusatView';
+import { MasterDataView } from './components/audit-pusat/master/MasterDataView';
+import { UserManagementView } from './components/audit-pusat/user-management/UserManagementView';
+import { ProfileView } from './components/profile/ProfileView';
 import { AuditLogView } from './components/audit-pusat/AuditLogView';
 import { UnauthorizedView } from './components/common/UnauthorizedView';
 import { LoginView } from './components/auth/LoginView';
@@ -51,7 +54,17 @@ const MainLayout: React.FC = () => {
 
     switch (activeTab) {
       case 'admin-pusat':
-        return <AuditPusatView onNavigateToAuditLog={() => setActiveTab('audit-log')} />;
+        return (
+          <AuditPusatView 
+            onNavigateToAuditLog={() => setActiveTab('audit-log')} 
+            onNavigateToMasterData={() => setActiveTab('master-data')}
+            onNavigateToUserManagement={() => setActiveTab('user-management')}
+          />
+        );
+      case 'user-management':
+        return <UserManagementView />;
+      case 'master-data':
+        return <MasterDataView />;
       case 'dashboard-cabang':
         return <BranchReviewView />;
       case 'input-tunai':
@@ -59,20 +72,30 @@ const MainLayout: React.FC = () => {
       case 'input-non-tunai':
         return <CashierView initialMode="non-cash" />;
       case 'mutasi-kas':
-        if (currentUser.role === 'AUDIT_CABANG' || currentUser.role === 'AUDIT_PUSAT') {
+        if (currentUser.role === 'AUDIT_CABANG' || currentUser.role === 'AUDIT_PUSAT' || currentUser.role === 'AUDIT_PUSAT_ADMIN') {
           return <AuditCabangView initialTab="mutasi" />;
         }
         return <CashierView initialMode="transfers" />;
       case 'audit-cabang-pos':
         return <AuditCabangView initialTab="rekap" />;
+      case 'kas-operasional':
+        return <AuditCabangView initialTab="operasional" />;
       case 'penunjukan-bandar':
         return <AuditCabangView initialTab="bandar" />;
       case 'perbankan':
         return <PerbankanView />;
       case 'audit-log':
         return <AuditLogView />;
+      case 'profile':
+        return <ProfileView />;
       default:
-        return <AuditPusatView onNavigateToAuditLog={() => setActiveTab('audit-log')} />;
+        return (
+          <AuditPusatView 
+            onNavigateToAuditLog={() => setActiveTab('audit-log')} 
+            onNavigateToMasterData={() => setActiveTab('master-data')}
+            onNavigateToUserManagement={() => setActiveTab('user-management')}
+          />
+        );
     }
   };
 

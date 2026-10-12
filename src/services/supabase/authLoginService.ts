@@ -131,7 +131,7 @@ export const authLoginService = {
         email: data.user.email || emailToAuth,
         role: (meta.role as UserRole) || 'KASIR',
         branchId: meta.branch_id || undefined,
-        status: (meta.role === 'AUDIT_PUSAT' ? 'ACTIVE' : 'PENDING'),
+        status: (meta.role === 'AUDIT_PUSAT' || meta.role === 'AUDIT_PUSAT_ADMIN' ? 'ACTIVE' : 'PENDING'),
       };
 
       try {

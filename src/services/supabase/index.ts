@@ -12,6 +12,7 @@ import { reportFetchService } from './reportFetchService';
 import { reportMutationService } from './reportMutationService';
 import { nonCashService } from './nonCashService';
 import { cashTransferService } from './cashTransferService';
+import { operationalAdjustmentService } from './operationalAdjustmentService';
 
 /**
  * Unified Supabase Service combining modular sub-services
@@ -29,6 +30,8 @@ export const supabaseService = {
   fetchUsersList: authService.fetchUsersList.bind(authService),
   fetchUsers: authService.fetchUsers.bind(authService),
   updateUserStatus: authService.updateUserStatus.bind(authService),
+  updateProfile: authService.updateProfile.bind(authService),
+  adminUpdateUser: authService.adminUpdateUser.bind(authService),
   signOut: authService.signOut.bind(authService),
   getCurrentAuthUser: authService.getCurrentAuthUser.bind(authService),
 
@@ -52,6 +55,11 @@ export const supabaseService = {
   rejectReport: reportMutationService.rejectReport.bind(reportMutationService),
   updateReportStatus: reportMutationService.updateReportStatus.bind(reportMutationService),
   forceEditReport: reportMutationService.forceEditReport.bind(reportMutationService),
+
+  // Operational Adjustments (Pengeluaran & Pemasukan Non-POS Kasir)
+  fetchOperationalAdjustments: operationalAdjustmentService.fetchOperationalAdjustments.bind(operationalAdjustmentService),
+  createOperationalAdjustment: operationalAdjustmentService.createOperationalAdjustment.bind(operationalAdjustmentService),
+  deleteOperationalAdjustment: operationalAdjustmentService.deleteOperationalAdjustment.bind(operationalAdjustmentService),
 
   // Non-Cash Transactions
   addNonCashTransaction: nonCashService.addNonCashTransaction.bind(nonCashService),
@@ -81,6 +89,7 @@ export {
   auditLogService, 
   reportFetchService, 
   reportMutationService, 
+  operationalAdjustmentService,
   nonCashService, 
   cashTransferService 
 };

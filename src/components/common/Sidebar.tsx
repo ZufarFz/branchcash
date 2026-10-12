@@ -26,7 +26,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isCollapsed,
   onToggleCollapse
 }) => {
-  const { currentUser, currentBranch, reports, auditLogs, cashTransfers, logout } = useApp();
+  const { currentUser, currentBranch, reports, auditLogs, cashTransfers, allUsers, logout } = useApp();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -37,13 +37,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const pendingTransferConfirmCount = (cashTransfers || []).filter(
     (t) => t.userId === currentUser.id && t.direction === 'IN' && t.status === 'PENDING'
   ).length;
+  const pendingUsersCount = (allUsers || []).filter((u) => u.status === 'PENDING').length;
 
   const menuSections = getSidebarMenuSections(
     currentUser.role,
     pendingApprovalCount,
     allNonCashCount,
     totalAuditLogs,
-    pendingTransferConfirmCount
+    pendingTransferConfirmCount,
+    pendingUsersCount
   );
 
   // Filter out sections where user has no permission

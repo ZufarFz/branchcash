@@ -21,12 +21,12 @@ export const SidebarUserProfile: React.FC<SidebarUserProfileProps> = ({
       <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} gap-2`}>
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-full bg-linear-to-tr from-indigo-500 to-indigo-600 text-white font-bold flex items-center justify-center shrink-0 shadow-2xs border border-indigo-400/30 text-xs">
-            {currentUser.name.slice(0, 2).toUpperCase()}
+            {(currentUser?.name || 'User').slice(0, 2).toUpperCase()}
           </div>
           {!isCollapsed && (
             <div className="min-w-0 leading-tight">
-              <span className="font-semibold text-slate-100 text-xs truncate block" title={currentUser.name}>
-                {currentUser.name}
+              <span className="font-semibold text-slate-100 text-xs truncate block" title={currentUser?.name || 'Pengguna'}>
+                {currentUser?.name || 'Pengguna'}
               </span>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <RoleBadge role={currentUser.role} size="sm" />

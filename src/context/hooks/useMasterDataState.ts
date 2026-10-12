@@ -26,8 +26,8 @@ export const useMasterDataState = (
 
   // Master Data Operations (Audit Pusat - Soft Delete Only)
   const saveMasterDenom = async (denom: DenomConfig): Promise<{ success: boolean; error?: string }> => {
-    if (currentUser.role !== 'AUDIT_PUSAT') {
-      return { success: false, error: 'Akses Ditolak: Hanya Audit Pusat yang berwenang mengelola Master Denominasi.' };
+    if (currentUser.role !== 'AUDIT_PUSAT_ADMIN') {
+      return { success: false, error: 'Akses Ditolak: Hanya Super Admin yang berwenang mengelola Master Denominasi.' };
     }
     const res = await supabaseService.upsertMasterDenom(denom);
     if (res.success) {
@@ -46,8 +46,8 @@ export const useMasterDataState = (
   };
 
   const toggleMasterDenomActive = async (denomId: string): Promise<{ success: boolean; error?: string }> => {
-    if (currentUser.role !== 'AUDIT_PUSAT') {
-      return { success: false, error: 'Akses Ditolak: Hanya Audit Pusat yang berwenang.' };
+    if (currentUser.role !== 'AUDIT_PUSAT_ADMIN') {
+      return { success: false, error: 'Akses Ditolak: Hanya Super Admin yang berwenang.' };
     }
     const target = masterDenoms.find(d => d.id === denomId);
     if (!target) return { success: false, error: 'Denominasi tidak ditemukan.' };
@@ -56,8 +56,8 @@ export const useMasterDataState = (
   };
 
   const saveBank = async (bank: BankOption): Promise<{ success: boolean; error?: string }> => {
-    if (currentUser.role !== 'AUDIT_PUSAT') {
-      return { success: false, error: 'Akses Ditolak: Hanya Audit Pusat yang berwenang mengelola Master Bank.' };
+    if (currentUser.role !== 'AUDIT_PUSAT_ADMIN') {
+      return { success: false, error: 'Akses Ditolak: Hanya Super Admin yang berwenang mengelola Master Bank.' };
     }
     const res = await supabaseService.upsertBank(bank);
     if (res.success) {
@@ -76,8 +76,8 @@ export const useMasterDataState = (
   };
 
   const toggleBankActive = async (bankId: string): Promise<{ success: boolean; error?: string }> => {
-    if (currentUser.role !== 'AUDIT_PUSAT') {
-      return { success: false, error: 'Akses Ditolak: Hanya Audit Pusat yang berwenang.' };
+    if (currentUser.role !== 'AUDIT_PUSAT_ADMIN') {
+      return { success: false, error: 'Akses Ditolak: Hanya Super Admin yang berwenang.' };
     }
     const target = banks.find(b => b.id === bankId);
     if (!target) return { success: false, error: 'Bank tidak ditemukan.' };
@@ -86,8 +86,8 @@ export const useMasterDataState = (
   };
 
   const savePaymentMethod = async (method: PaymentMethodOption): Promise<{ success: boolean; error?: string }> => {
-    if (currentUser.role !== 'AUDIT_PUSAT') {
-      return { success: false, error: 'Akses Ditolak: Hanya Audit Pusat yang berwenang mengelola Metode Pembayaran.' };
+    if (currentUser.role !== 'AUDIT_PUSAT_ADMIN') {
+      return { success: false, error: 'Akses Ditolak: Hanya Super Admin yang berwenang mengelola Metode Pembayaran.' };
     }
     const res = await supabaseService.upsertPaymentMethod(method);
     if (res.success) {
@@ -106,8 +106,8 @@ export const useMasterDataState = (
   };
 
   const togglePaymentMethodActive = async (methodId: string): Promise<{ success: boolean; error?: string }> => {
-    if (currentUser.role !== 'AUDIT_PUSAT') {
-      return { success: false, error: 'Akses Ditolak: Hanya Audit Pusat yang berwenang.' };
+    if (currentUser.role !== 'AUDIT_PUSAT_ADMIN') {
+      return { success: false, error: 'Akses Ditolak: Hanya Super Admin yang berwenang.' };
     }
     const target = paymentMethods.find(m => m.id === methodId);
     if (!target) return { success: false, error: 'Metode pembayaran tidak ditemukan.' };
@@ -116,8 +116,8 @@ export const useMasterDataState = (
   };
 
   const saveBranch = async (branch: Branch): Promise<{ success: boolean; error?: string }> => {
-    if (currentUser.role !== 'AUDIT_PUSAT') {
-      return { success: false, error: 'Akses Ditolak: Hanya Audit Pusat yang berwenang mengelola Cabang.' };
+    if (currentUser.role !== 'AUDIT_PUSAT_ADMIN') {
+      return { success: false, error: 'Akses Ditolak: Hanya Super Admin yang berwenang mengelola Cabang.' };
     }
     const res = await supabaseService.upsertBranch(branch);
     if (res.success) {
@@ -136,8 +136,8 @@ export const useMasterDataState = (
   };
 
   const toggleBranchActive = async (branchId: string): Promise<{ success: boolean; error?: string }> => {
-    if (currentUser.role !== 'AUDIT_PUSAT') {
-      return { success: false, error: 'Akses Ditolak: Hanya Audit Pusat yang berwenang.' };
+    if (currentUser.role !== 'AUDIT_PUSAT_ADMIN') {
+      return { success: false, error: 'Akses Ditolak: Hanya Super Admin yang berwenang.' };
     }
     const target = branches.find(b => b.id === branchId);
     if (!target) return { success: false, error: 'Cabang tidak ditemukan.' };

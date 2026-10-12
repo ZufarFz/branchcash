@@ -33,7 +33,7 @@ export const reportFetchService = {
         supabase.from('branches').select('id, code, name'),
         supabase.from('users').select('id, name'),
         supabase.from('banks').select('id, name'),
-        supabase.from('payment_methods').select('id, code, name'),
+        supabase.from('payment_methods').select('id, name'),
         supabase.from('master_denoms').select('*'),
       ]);
 
@@ -105,8 +105,8 @@ export const reportFetchService = {
           return {
             id: nc.id,
             reportId: nc.report_id,
-            bank: bankObj.code || bankObj.name || nc.bank_name || nc.bank || 'Bank',
-            paymentMethod: methodObj.name || methodObj.code || nc.payment_method || 'EDC',
+            bank: bankObj.name || nc.bank_name || nc.bank || 'Bank',
+            paymentMethod: methodObj.name || nc.payment_method || 'EDC',
             amount: Number(nc.amount || 0),
             syncStatus: 'SAVED',
           };
@@ -131,8 +131,11 @@ export const reportFetchService = {
         const totalNonCash = Number(raw.total_non_cash || 0);
         const totalPhysical = Number(raw.total_physical || totalCash);
         const calculatedGrandTotal = totalCash + totalNonCash;
-
         const dateIso = raw.created_at || raw.business_date || new Date().toISOString();
+
+        const expenseAdj = Number(raw.total_expense_adjustment || 0);
+        const incomeAdj = Number(raw.total_income_adjustment || 0);
+        const expectedCash = compTotal !== null ? (compTotal - expenseAdj + incomeAdj) : null;
 
         return {
           id: raw.id,
@@ -154,14 +157,14 @@ export const reportFetchService = {
           computerCashTunai: compTunai,
           computerCashNonTunai: compNonTunai,
           computerCashTotal: compTotal,
-          varianceTunai: compTunai !== null ? (totalCash - compTunai) : null,
+          totalExpenseAdjustment: expenseAdj,
+          totalIncomeAdjustment: incomeAdj,
+          varianceTunai: compTunai !== null ? (totalCash - (compTunai - expenseAdj + incomeAdj)) : null,
           varianceNonTunai: compNonTunai !== null ? (totalNonCash - compNonTunai) : null,
-          variance: compTotal !== null ? (calculatedGrandTotal - compTotal) : 0,
+          variance: expectedCash !== null ? (calculatedGrandTotal - expectedCash) : 0,
           createdDate: dateIso,
           updatedDate: raw.updated_at || dateIso,
           notes: raw.notes || raw.computer_cash_notes || '',
-          submittedDate: raw.submitted_at || undefined,
-          submittedAt: raw.submitted_at ? new Date(raw.submitted_at).toLocaleString('id-ID') : undefined,
           verifiedAt: (raw.verified_at || raw.approved_at) ? new Date(raw.verified_at || raw.approved_at).toLocaleString('id-ID') : undefined,
         };
       });

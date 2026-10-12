@@ -9,7 +9,8 @@ export type UserRole =
   | 'KEPALA_CABANG'
   | 'AUDIT_CABANG'
   | 'PERBANKAN'
-  | 'AUDIT_PUSAT';
+  | 'AUDIT_PUSAT'
+  | 'AUDIT_PUSAT_ADMIN';
 
 export type ReportStatus = 'DRAFT' | 'SUBMITTED' | 'REJECTED' | 'APPROVED';
 
@@ -118,24 +119,36 @@ export interface CashReport {
   varianceNonTunai: number | null; // totalNonCash - (computerCashNonTunai || 0)
   variance: number | null; // totalPhysical - (computerCashTotal || 0)
 
-  // Branch Review Tracking
-  spvReviewedAt?: string;
-  spvReviewedBy?: string;
-  spvNotes?: string;
-
-  kacabReviewedAt?: string;
-  kacabReviewedBy?: string;
-  kacabNotes?: string;
-
   // Verification Tracking (Audit Cabang / Audit Pusat - decision seen via status)
   verifiedAt?: string;
   verifiedBy?: string;
   
+  // Penyesuaian Operasional Kasir Non-POS (Diinput Audit Cabang)
+  totalExpenseAdjustment?: number;
+  totalIncomeAdjustment?: number;
+
   // Timestamps & Single Unified Notes Column
   createdDate: string;
-  submittedDate?: string;
   updatedDate: string;
   notes?: string;
+}
+
+export type AdjustmentType = 'EXPENSE' | 'INCOME';
+
+export interface CashierOperationalAdjustment {
+  id: string;
+  reportId?: string;
+  branchId: string;
+  cashierId: string;
+  cashierName?: string;
+  businessDate: string;
+  type: AdjustmentType;
+  amount: number;
+  notes: string;
+  createdBy: string;
+  createdByName?: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface BranchCashSession {
@@ -148,7 +161,6 @@ export interface BranchCashSession {
   assignedBy: string;
   assignedByName?: string;
   status: ReportStatus;
-  notes?: string;
   transferCount?: number;
   reportCount?: number;
   hasTransactions?: boolean;
@@ -220,16 +232,16 @@ export interface AuditLogEntry {
 
 export interface BankOption {
   id: string;
-  code: string;
   name: string;
+  code?: string;
   color?: string;
   isActive?: boolean;
 }
 
 export interface PaymentMethodOption {
   id: string;
-  code: string;
   name: string;
+  code?: string;
   isActive?: boolean;
 }
 

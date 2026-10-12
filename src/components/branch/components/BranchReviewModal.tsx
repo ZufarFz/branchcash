@@ -100,20 +100,6 @@ export const BranchReviewModal: React.FC<BranchReviewModalProps> = ({
           )}
         </div>
 
-        {/* Existing notes */}
-        {report.spvNotes && (
-          <div className="p-3 bg-amber-50 rounded-xl border border-amber-200">
-            <span className="font-bold text-amber-900 block">Catatan SPV ({report.spvReviewedBy}):</span>
-            <p className="text-amber-800 mt-0.5 italic">"{report.spvNotes}"</p>
-          </div>
-        )}
-
-        {report.kacabNotes && (
-          <div className="p-3 bg-blue-50 rounded-xl border border-blue-200">
-            <span className="font-bold text-blue-900 block">Catatan Kepala Cabang ({report.kacabReviewedBy}):</span>
-            <p className="text-blue-800 mt-0.5 italic">"{report.kacabNotes}"</p>
-          </div>
-        )}
 
         {/* Input Note Form */}
         <div>

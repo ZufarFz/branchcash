@@ -138,7 +138,7 @@ export const nonCashService = {
       let validBankId: string | null = isValidUUID(tx.bank) ? tx.bank : null;
       if (!validBankId) {
         if (!cachedBanksListRef.list || cachedBanksListRef.list.length === 0) {
-          const { data: allBanks, error: bError } = await supabase.from('banks').select('id, code, name');
+          const { data: allBanks, error: bError } = await supabase.from('banks').select('id, name');
           if (bError) {
             return { success: false, message: `Gagal membaca tabel banks di Supabase: ${bError.message}` };
           }
@@ -146,9 +146,9 @@ export const nonCashService = {
         }
         if (cachedBanksListRef.list.length > 0) {
           const match = cachedBanksListRef.list.find(b => 
-            b.code.toLowerCase() === tx.bank.toLowerCase() || 
+            b.name.toLowerCase() === tx.bank.toLowerCase() || 
             b.name.toLowerCase().includes(tx.bank.toLowerCase()) ||
-            tx.bank.toLowerCase().includes(b.code.toLowerCase())
+            tx.bank.toLowerCase().includes(b.name.toLowerCase())
           );
           validBankId = match ? match.id : cachedBanksListRef.list[0].id;
         }
@@ -157,7 +157,7 @@ export const nonCashService = {
       let validMethodId: string | null = isValidUUID(tx.paymentMethod) ? tx.paymentMethod : null;
       if (!validMethodId) {
         if (!cachedMethodsListRef.list || cachedMethodsListRef.list.length === 0) {
-          const { data: allMethods, error: mError } = await supabase.from('payment_methods').select('id, code, name');
+          const { data: allMethods, error: mError } = await supabase.from('payment_methods').select('id, name');
           if (mError) {
             return { success: false, message: `Gagal membaca tabel payment_methods di Supabase: ${mError.message}` };
           }
@@ -165,9 +165,9 @@ export const nonCashService = {
         }
         if (cachedMethodsListRef.list.length > 0) {
           const match = cachedMethodsListRef.list.find(m => 
-            m.code.toLowerCase() === tx.paymentMethod.toLowerCase() || 
+            m.name.toLowerCase() === tx.paymentMethod.toLowerCase() || 
             m.name.toLowerCase().includes(tx.paymentMethod.toLowerCase()) ||
-            tx.paymentMethod.toLowerCase().includes(m.code.toLowerCase())
+            tx.paymentMethod.toLowerCase().includes(m.name.toLowerCase())
           );
           validMethodId = match ? match.id : cachedMethodsListRef.list[0].id;
         }

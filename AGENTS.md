@@ -26,27 +26,26 @@ Dokumen aturan baku untuk AI Agent dan developer. Wajib dipatuhi tanpa pengecual
 | **`KEPALA_CABANG`** | Cabang | Verifikasi laporan cabang sebelum diajukan ke pusat | Dilarang mengubah status laporan ke `APPROVED`. |
 | **`AUDIT_CABANG`** | Cabang | Input nominal *Computer Cash* (POS) harian secara independen | Dilarang approval/reject laporan. |
 | **`PERBANKAN`** | Kantor Pusat | Rekonsiliasi non-tunai bank (`MATCHED` / `UNMATCHED`) | Dilarang input kas fisik cabang. |
-| **`AUDIT_PUSAT`** | Kantor Pusat | Super Admin: Approval final (`APPROVED`), Reject (`REJECTED`), Force Edit | Semua tindakan wajib tercatat di Audit Log. |
+| **`AUDIT_PUSAT`** | Kantor Pusat | Review berkas cabang, Approval final (`APPROVED`), Reject (`REJECTED`), Force Edit | Dilarang mengelola Master Data & Persetujuan Akun. |
+| **`AUDIT_PUSAT_ADMIN`** | Kantor Pusat | **Super Admin**: Semua wewenang Audit Pusat + Pengelolaan Master Data (Cabang, Bank, Denom, Metode) + Persetujuan Akun Pengguna | Semua tindakan wajib tercatat di Audit Log. |
 
 ---
 
 ## 4. Manajemen Database SQL (`supabase/`)
 
-Hanya ada **2 file resmi** di folder `supabase/`:
+Struktur resmi file SQL termodularisasi di folder `supabase/` (dieksekusi berurutan 01 s/d 05 untuk inisialisasi dari nol):
 
-### A. `supabase/01_all_in_one_master.sql` (Master Setup)
-- Skrip 1x eksekusi untuk setup database baru dari nol.
-- Berisi: UUID extension, Enum, Tabel Master (`branches`, `users`, `master_denoms`, `banks`, `payment_methods`), Tabel Transaksi (`cash_reports`, `cash_report_denominations` dengan kolom JSONB `breakdown`, `non_cash_transactions`, `audit_logs`), Triggers, RLS Policies, dan Seed Data resmi.
-
-### B. `supabase/02_latest_migration.sql` (Update Terakhir / Delta Log)
-- HANYA berisi delta/perubahan skema terbaru secara berurutan.
-- Format per blok: Diberi header Tanggal dan Nomor Update (`UPDATE #[nomor] - [YYYY-MM-DD]`).
-- Setiap update baru wajib ditambahkan di **paling bawah**, sehingga developer cukup copy-paste blok update terakhir ke Supabase SQL Editor.
+1. **`supabase/01_extensions_and_enums.sql`**: Ekstensi (`uuid-ossp`), Enum (`user_role`, `report_status`, `match_status`), dan fungsi auth helper dasar (`current_user_role()`, `current_user_branch_id()`).
+2. **`supabase/02_master_tables_and_rls.sql`**: Tabel Master (`branches`, `users`, `master_denoms`, `banks`, `payment_methods`) beserta indeks dan RLS policies masing-masing.
+3. **`supabase/03_transaction_tables_and_rls.sql`**: Tabel Transaksi (`branch_cash_sessions`, `cash_reports`, `cash_report_denominations`, `non_cash_transactions`, `cashier_cash_transfers`, `cashier_operational_adjustments`, `audit_logs`) beserta indeks dan RLS policies masing-masing.
+4. **`supabase/04_triggers_and_functions.sql`**: Seluruh stored procedure, trigger kalkulasi otomatis, validasi wewenang/immutability, auto-link sesi kas, dan trigger audit log.
+5. **`supabase/05_seed_data.sql`**: Master data awal (cabang resmi, pecahan uang rupiah, bank mitra, dan metode pembayaran).
+6. **`supabase/06_latest_migration.sql`**: Delta log migrasi kumulatif untuk database yang sudah berjalan (berisi blok `UPDATE #[nomor] - [YYYY-MM-DD]` berurutan di paling bawah).
 
 ### Protokol Perubahan Skema
-1. Tambahkan blok perubahan baru di **paling bawah** `supabase/02_latest_migration.sql` lengkap dengan header tanggal dan nomor update.
-2. Sinkronkan perubahan skema ke `supabase/01_all_in_one_master.sql` agar setup master baru selalu up-to-date.
-3. Primary key denominasi wajib `UUID`. Nominal uang wajib `BIGINT`.
+1. Tambahkan blok perubahan baru di **paling bawah** `supabase/06_latest_migration.sql` lengkap dengan header tanggal dan nomor update.
+2. Sinkronkan perubahan skema langsung ke modul terkait (`01` s/d `05`) agar inisialisasi dari nol selalu up-to-date tanpa ada duplikasi file master.
+3. Primary key denominasi wajib `UUID`. Nominal uang wajib `BIGINT`/`NUMERIC(15,2)`.
 
 ---
 
@@ -64,9 +63,8 @@ Hanya ada **2 file resmi** di folder `supabase/`:
    - SEMUA file kode di dalam workspace WAJIB ringkas dan modular dengan target **200–300 baris** (maksimal 300 baris).
    - Jika suatu file kode melebihi 300 baris, **WAJIB dipecah (split)** menjadi beberapa sub-file terpisah ke dalam sub-folder fitur masing-masing.
    - **Pengecualian Mutlak**: HANYA file-file berikut yang diizinkan melebihi batas baris:
-     1. `supabase/01_all_in_one_master.sql` (Master SQL Setup)
-     2. `supabase/02_latest_migration.sql` (Migration Delta Log)
-     3. File dokumentasi Markdown (`.md` seperti `README.md`, `AGENTS.md`) untuk keperluan kelengkapan dokumentasi.
+     1. Seluruh file SQL modular di folder `supabase/` (`01` s/d `06`) untuk keutuhan DDL skema database.
+     2. File dokumentasi Markdown (`.md` seperti `README.md`, `AGENTS.md`) untuk keperluan kelengkapan dokumentasi.
      Selain file di atas, **TIDAK ADA PENGECUALIAN APAPUN** (seluruh file kode `.ts`, `.tsx`, `.css`, dll. wajib <= 300 baris).
 2. **Struktur Folder Fitur**: Subkomponen, modal, tabel, metrik, hooks, dan helper harus diorganisasi rapi ke dalam folder fitur masing-masing (misal: `src/components/audit-cabang/components/`, `src/components/cashier/modals/`, `src/context/hooks/`).
 3. **Format Wajib Tabel Laporan Perubahan File**: Setiap respon setelah mengedit atau menambah file, AI WAJIB menyertakan tabel laporan akhir dengan format 4 kolom persis seperti berikut:

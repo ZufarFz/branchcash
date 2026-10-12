@@ -61,6 +61,8 @@ export const authUserAdminService = {
           msg = 'Email ini sudah terdaftar. Silakan gunakan menu Masuk.';
         } else if (msg.includes('Password should be at least')) {
           msg = 'Password minimal harus terdiri dari 6 karakter.';
+        } else if (msg.includes('Database error saving new user')) {
+          msg = 'Database error saving new user. Harap jalankan skrip SQL UPDATE #11 di Supabase SQL Editor untuk memperbarui trigger pengguna.';
         }
         return { user: null, error: msg };
       }
@@ -70,8 +72,7 @@ export const authUserAdminService = {
       }
 
       const needsEmailConfirmation = !data.session;
-      const isAutoActive = params.role === 'AUDIT_PUSAT';
-      const initialStatus: 'ACTIVE' | 'PENDING' = isAutoActive ? 'ACTIVE' : 'PENDING';
+      const initialStatus: 'ACTIVE' | 'PENDING' = 'PENDING';
 
       try {
         await supabase.from('users').upsert({
@@ -85,11 +86,10 @@ export const authUserAdminService = {
         });
       } catch {}
 
-      if (!isAutoActive) {
-        try {
-          await supabase.auth.signOut();
-        } catch {}
-      }
+      // Seluruh akun baru wajib menunggu approval admin, sign out otomatis
+      try {
+        await supabase.auth.signOut();
+      } catch {}
 
       const createdUser: User = {
         id: data.user.id,
@@ -101,16 +101,16 @@ export const authUserAdminService = {
         status: initialStatus,
       };
 
-      return { user: createdUser, error: null, needsEmailConfirmation, needsApproval: !isAutoActive };
+      return { user: createdUser, error: null, needsEmailConfirmation, needsApproval: true };
     } catch (err: any) {
       return { user: null, error: err?.message || 'Terjadi kesalahan saat pendaftaran akun.' };
     }
   },
 
   /**
-   * Ambil seluruh pengguna (untuk approval akun oleh AUDIT_PUSAT)
+   * Ambil seluruh pengguna (untuk approval akun oleh AUDIT_PUSAT/ADMIN)
    */
-  async fetchUsersList(): Promise<User[]> {
+  async fetchUsersList(callerRole?: UserRole): Promise<User[]> {
     const supabase = getSupabaseClient();
     if (!supabase) return [];
 
@@ -132,7 +132,13 @@ export const authUserAdminService = {
 
       if (error || !data) return [];
 
-      return data.map((u: any) => ({
+      let list = data;
+      // Isolasi: Jika bukan Super Admin, filter out akun Super Admin
+      if (callerRole && callerRole !== 'AUDIT_PUSAT_ADMIN') {
+        list = list.filter((u: any) => u.role !== 'AUDIT_PUSAT_ADMIN');
+      }
+
+      return list.map((u: any) => ({
         id: u.id,
         name: u.name,
         username: u.username || u.email?.split('@')[0],
@@ -148,16 +154,25 @@ export const authUserAdminService = {
     }
   },
 
-  async fetchUsers(): Promise<User[] | null> {
-    return this.fetchUsersList();
+  async fetchUsers(callerRole?: UserRole): Promise<User[] | null> {
+    return this.fetchUsersList(callerRole);
   },
 
   /**
    * ACC / Ubah status pengguna (ACTIVE / INACTIVE)
    */
-  async updateUserStatus(userId: string, status: 'ACTIVE' | 'INACTIVE'): Promise<{ success: boolean; error?: string }> {
+  async updateUserStatus(
+    userId: string, 
+    status: 'ACTIVE' | 'INACTIVE',
+    callerRole?: UserRole,
+    targetRole?: UserRole
+  ): Promise<{ success: boolean; error?: string }> {
     const supabase = getSupabaseClient();
     if (!supabase) return { success: false, error: 'Supabase tidak terhubung.' };
+
+    if (callerRole === 'AUDIT_PUSAT' && (targetRole === 'AUDIT_PUSAT' || targetRole === 'AUDIT_PUSAT_ADMIN')) {
+      return { success: false, error: 'Hanya Super Admin yang berhak mengubah status akun Audit Pusat.' };
+    }
 
     try {
       const { error } = await supabase
@@ -165,12 +180,108 @@ export const authUserAdminService = {
         .update({ status, updated_at: new Date().toISOString() })
         .eq('id', userId);
 
-      if (error) {
-        return { success: false, error: error.message };
-      }
+      if (error) return { success: false, error: error.message };
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err?.message || 'Gagal mengubah status pengguna.' };
+    }
+  },
+
+  /**
+   * Pengguna mengedit profil sendiri (HANYA Nama & Password)
+   * Wajib konfirmasi password lama demi keamanan & username anti-fraud
+   */
+  async updateProfile(
+    userId: string, 
+    email: string, 
+    name: string, 
+    currentPassword: string, 
+    newPassword?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return { success: false, error: 'Supabase tidak terhubung.' };
+
+    if (!currentPassword || !currentPassword.trim()) {
+      return { success: false, error: 'Kata sandi saat ini wajib diisi untuk konfirmasi keamanan.' };
+    }
+
+    try {
+      // 1. Verifikasi kata sandi saat ini
+      const { error: verifyErr } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: currentPassword,
+      });
+
+      if (verifyErr) {
+        return { success: false, error: 'Kata sandi saat ini (lama) salah. Konfirmasi keamanan gagal.' };
+      }
+
+      // 2. Perbarui nama lengkap jika lolos verifikasi
+      const cleanName = name.trim();
+      const { error: nameError } = await supabase
+        .from('users')
+        .update({ name: cleanName, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+
+      if (nameError) return { success: false, error: nameError.message };
+
+      await supabase.auth.updateUser({ data: { name: cleanName } }).catch(() => {});
+
+      // 3. Perbarui kata sandi baru jika diisi
+      if (newPassword && newPassword.trim().length >= 6) {
+        const { error: passError } = await supabase.auth.updateUser({
+          password: newPassword.trim()
+        });
+        if (passError) {
+          return { success: false, error: `Nama berhasil disimpan, namun sandi baru gagal: ${passError.message}` };
+        }
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Gagal memperbarui profil.' };
+    }
+  },
+
+  /**
+   * Audit Pusat / Super Admin mengedit profil akun pengguna lain
+   */
+  async adminUpdateUser(
+    userId: string,
+    data: { name: string; role: UserRole; branchId?: string | null; status: 'PENDING' | 'ACTIVE' | 'INACTIVE' },
+    callerRole?: UserRole,
+    targetRole?: UserRole
+  ): Promise<{ success: boolean; error?: string }> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return { success: false, error: 'Supabase tidak terhubung.' };
+
+    if (callerRole === 'AUDIT_PUSAT') {
+      if (targetRole === 'AUDIT_PUSAT' || targetRole === 'AUDIT_PUSAT_ADMIN') {
+        return { success: false, error: 'Audit Pusat tidak memiliki wewenang untuk mengubah data sesama Audit Pusat atau Super Admin.' };
+      }
+      if (data.role === 'AUDIT_PUSAT' || data.role === 'AUDIT_PUSAT_ADMIN') {
+        return { success: false, error: 'Hanya Super Admin yang berhak memberikan peran Audit Pusat atau Super Admin.' };
+      }
+    }
+
+    try {
+      const payload: Record<string, any> = {
+        name: data.name.trim(),
+        role: data.role,
+        branch_id: data.branchId || null,
+        status: data.status,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase
+        .from('users')
+        .update(payload)
+        .eq('id', userId);
+
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Gagal memperbarui data pengguna.' };
     }
   }
 };

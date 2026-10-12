@@ -46,6 +46,27 @@ export const CashierBottomSummary: React.FC<CashierBottomSummaryProps> = ({
               </span>
             </div>
 
+            {((activeReport?.totalExpenseAdjustment || 0) > 0 || (activeReport?.totalIncomeAdjustment || 0) > 0) && (
+              <div className="pt-1.5 pb-1 border-t border-dashed border-slate-200 space-y-1">
+                {(activeReport?.totalExpenseAdjustment || 0) > 0 && (
+                  <div className="flex items-center justify-between text-rose-600">
+                    <span>Pengeluaran Ops Cabang</span>
+                    <span className="font-mono font-semibold">
+                      - {formatCurrency(activeReport?.totalExpenseAdjustment || 0)}
+                    </span>
+                  </div>
+                )}
+                {(activeReport?.totalIncomeAdjustment || 0) > 0 && (
+                  <div className="flex items-center justify-between text-emerald-600">
+                    <span>Pemasukan Ops Cabang</span>
+                    <span className="font-mono font-semibold">
+                      + {formatCurrency(activeReport?.totalIncomeAdjustment || 0)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {activeReport?.status === 'APPROVED' && (
               <>
                 <div className="flex items-center justify-between text-slate-600">
@@ -60,7 +81,7 @@ export const CashierBottomSummary: React.FC<CashierBottomSummaryProps> = ({
                 </div>
 
                 <div className="flex items-center justify-between text-slate-700">
-                  <span className="font-medium">Selisih Fisik vs POS</span>
+                  <span className="font-medium">Selisih Rekonsiliasi</span>
                   <div className="font-mono">
                     {activeReport?.variance !== null && activeReport?.variance !== undefined ? (
                       <VarianceBadge variance={activeReport.variance} size="sm" />

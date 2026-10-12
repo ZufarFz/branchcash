@@ -31,7 +31,10 @@ export const CashierMatrixRow: React.FC<CashierMatrixRowProps> = ({
   const posTunai = report.computerCashTunai !== null && report.computerCashTunai !== undefined 
     ? report.computerCashTunai 
     : (report.computerCashTotal !== null && report.computerCashTotal !== undefined ? report.computerCashTotal : null);
-  const selisihTunai = (hasPOS && posTunai !== null) ? (report.totalCash - posTunai) : null;
+  const expenseAdj = report.totalExpenseAdjustment || 0;
+  const incomeAdj = report.totalIncomeAdjustment || 0;
+  const expectedTunai = posTunai !== null ? (posTunai - expenseAdj + incomeAdj) : null;
+  const selisihTunai = (hasPOS && expectedTunai !== null) ? (report.totalCash - expectedTunai) : null;
   const breakdownRows = isExpandedDetails ? getCashierBreakdownRows(report, activeMasterList) : [];
 
   return (
@@ -44,8 +47,16 @@ export const CashierMatrixRow: React.FC<CashierMatrixRowProps> = ({
             <UserIcon className="w-3.5 h-3.5 text-purple-600 shrink-0" />
             <span className="font-bold text-slate-900 block truncate text-xs">{report.cashierName}</span>
           </div>
-          <div className="mt-1">
+          <div className="mt-1 flex items-center gap-1 flex-wrap">
             <StatusBadge status={report.status} size="sm" />
+            {(expenseAdj > 0 || incomeAdj > 0) && (
+              <span 
+                className="text-[9px] font-bold font-mono px-1 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-300"
+                title={`Penyesuaian Ops: -${expenseAdj.toLocaleString('id-ID')} / +${incomeAdj.toLocaleString('id-ID')}`}
+              >
+                Ops
+              </span>
+            )}
           </div>
         </td>
 

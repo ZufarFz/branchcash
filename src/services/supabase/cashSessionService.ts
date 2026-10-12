@@ -49,7 +49,7 @@ export const cashSessionService = {
       return data.map((row: any) => {
         const transferCount = transferCountMap.get(row.id) || 0;
         const reportCount = reportCountMap.get(row.id) || 0;
-        const hasTransactions = transferCount > 0 || reportCount > 0;
+        const hasTransactions = transferCount > 0;
 
         return {
           id: row.id,
@@ -61,7 +61,6 @@ export const cashSessionService = {
           assignedBy: row.assigned_by,
           assignedByName: usersMap.get(row.assigned_by) || 'Audit Cabang',
           status: row.status as ReportStatus,
-          notes: row.notes || undefined,
           transferCount,
           reportCount,
           hasTransactions,
@@ -83,7 +82,6 @@ export const cashSessionService = {
     businessDate: string;
     bandarUserId: string;
     assignedBy: string;
-    notes?: string;
   }): Promise<BranchCashSession | null> {
     const supabase = getSupabaseClient();
     if (!supabase) return null;
@@ -97,7 +95,6 @@ export const cashSessionService = {
         bandar_user_id: params.bandarUserId,
         assigned_by: params.assignedBy,
         status: 'DRAFT',
-        notes: params.notes || null,
       };
 
       const { data, error } = await supabase
@@ -111,6 +108,14 @@ export const cashSessionService = {
         return null;
       }
 
+      // Hubungkan laporan kas kasir yang dibuat sebelum sesi dibuka
+      await supabase
+        .from('cash_reports')
+        .update({ cash_session_id: data.id })
+        .eq('branch_id', params.branchId)
+        .eq('business_date', params.businessDate)
+        .is('cash_session_id', null);
+
       return {
         id: data.id,
         branchId: data.branch_id,
@@ -118,7 +123,6 @@ export const cashSessionService = {
         bandarUserId: data.bandar_user_id,
         assignedBy: data.assigned_by,
         status: data.status as ReportStatus,
-        notes: data.notes || undefined,
         transferCount: 0,
         reportCount: 0,
         hasTransactions: false,
@@ -152,19 +156,6 @@ export const cashSessionService = {
         return {
           success: false,
           error: 'Kasir Bandar tidak dapat diubah karena sudah ada transaksi mutasi kas/modal pada sesi ini.',
-        };
-      }
-
-      const { data: reports } = await supabase
-        .from('cash_reports')
-        .select('id')
-        .eq('cash_session_id', params.sessionId)
-        .limit(1);
-
-      if (reports && reports.length > 0) {
-        return {
-          success: false,
-          error: 'Kasir Bandar tidak dapat diubah karena kasir cabang sudah mulai membuat laporan kas.',
         };
       }
 

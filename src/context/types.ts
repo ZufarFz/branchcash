@@ -66,7 +66,12 @@ export interface AppContextType {
   setCurrentUser: (user: User) => void;
   allUsers: User[];
   approveUser: (userId: string) => Promise<{ success: boolean; error?: string }>;
-  rejectUser: (userId: string) => Promise<{ success: boolean; error?: string }>;
+  updateProfile: (name: string, currentPassword: string, newPassword?: string) => Promise<{ success: boolean; error?: string }>;
+  adminUpdateUser: (
+    userId: string,
+    data: { name: string; role: UserRole; branchId?: string | null; status: 'PENDING' | 'ACTIVE' | 'INACTIVE' },
+    targetRole?: UserRole
+  ) => Promise<{ success: boolean; error?: string }>;
   branches: Branch[];
   currentBranch?: Branch;
   reports: CashReport[];

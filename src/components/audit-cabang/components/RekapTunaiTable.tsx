@@ -49,6 +49,19 @@ export const RekapTunaiTable: React.FC<RekapTunaiTableProps> = ({
     return totals;
   }, [activeMasterList, filteredReports]);
 
+  const { branchExpenseAdj, branchIncomeAdj } = useMemo(() => {
+    return filteredReports.reduce(
+      (acc, rep) => ({
+        branchExpenseAdj: acc.branchExpenseAdj + (rep.totalExpenseAdjustment || 0),
+        branchIncomeAdj: acc.branchIncomeAdj + (rep.totalIncomeAdjustment || 0),
+      }),
+      { branchExpenseAdj: 0, branchIncomeAdj: 0 }
+    );
+  }, [filteredReports]);
+
+  const expectedBranchPOSTunai = branchPOSTunaiTotal - branchExpenseAdj + branchIncomeAdj;
+  const selisihTotalCabang = branchTunaiTotal - expectedBranchPOSTunai;
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-4">
       {/* Sub-Container 1: Header Judul */}
@@ -186,8 +199,8 @@ export const RekapTunaiTable: React.FC<RekapTunaiTableProps> = ({
                   {posColumnMode === 'KOMPUTER' ? (
                     <span className="font-black text-purple-950 block truncate">{branchPOSTunaiTotal.toLocaleString('id-ID')}</span>
                   ) : (
-                    <span className={`font-black block truncate ${branchTunaiTotal - branchPOSTunaiTotal === 0 ? 'text-emerald-800' : branchTunaiTotal - branchPOSTunaiTotal < 0 ? 'text-rose-800' : 'text-blue-800'}`}>
-                      {(branchTunaiTotal - branchPOSTunaiTotal) === 0 ? '0' : (branchTunaiTotal - branchPOSTunaiTotal).toLocaleString('id-ID')}
+                    <span className={`font-black block truncate ${selisihTotalCabang === 0 ? 'text-emerald-800' : selisihTotalCabang < 0 ? 'text-rose-800' : 'text-blue-800'}`}>
+                      {selisihTotalCabang === 0 ? '0' : selisihTotalCabang.toLocaleString('id-ID')}
                     </span>
                   )}
                 </td>

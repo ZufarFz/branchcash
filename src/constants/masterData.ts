@@ -21,21 +21,21 @@ export const MASTER_DENOMS: DenomConfig[] = [
 
 // Master Bank Mitra (PRD Bab 5)
 export const MASTER_BANKS: BankOption[] = [
-  { id: 'bca', code: 'BCA', name: 'Bank Central Asia', color: '#005baa' },
-  { id: 'mandiri', code: 'Mandiri', name: 'Bank Mandiri', color: '#003399' },
-  { id: 'bri', code: 'BRI', name: 'Bank Rakyat Indonesia', color: '#00529c' },
-  { id: 'bni', code: 'BNI', name: 'Bank Negara Indonesia', color: '#e05a1e' },
-  { id: 'cimb', code: 'CIMB', name: 'CIMB Niaga', color: '#7a001a' },
-  { id: 'permata', code: 'Permata', name: 'Bank Permata', color: '#009a44' },
+  { id: 'bca', name: 'Bank Central Asia', color: '#005baa' },
+  { id: 'mandiri', name: 'Bank Mandiri', color: '#003399' },
+  { id: 'bri', name: 'Bank Rakyat Indonesia', color: '#00529c' },
+  { id: 'bni', name: 'Bank Negara Indonesia', color: '#e05a1e' },
+  { id: 'cimb', name: 'CIMB Niaga', color: '#7a001a' },
+  { id: 'permata', name: 'Bank Permata', color: '#009a44' },
 ];
 
 // Master Metode Pembayaran Non-Tunai (PRD Bab 5)
 export const MASTER_PAYMENT_METHODS: PaymentMethodOption[] = [
-  { id: 'qris', code: 'QRIS', name: 'QRIS' },
-  { id: 'debit', code: 'Debit', name: 'Kartu Debit' },
-  { id: 'credit', code: 'Credit', name: 'Kartu Kredit' },
-  { id: 'transfer', code: 'Transfer', name: 'Bank Transfer' },
-  { id: 'edc', code: 'EDC', name: 'Mesin EDC' },
+  { id: 'qris', name: 'QRIS' },
+  { id: 'debit', name: 'Kartu Debit' },
+  { id: 'credit', name: 'Kartu Kredit' },
+  { id: 'transfer', name: 'Bank Transfer' },
+  { id: 'edc', name: 'Mesin EDC' },
 ];
 
 

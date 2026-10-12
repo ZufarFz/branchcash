@@ -4,22 +4,23 @@ import { CashReport, DenomConfig, DenomBreakdownItem } from '../../types';
 import { PenunjukanBandarTab } from './tabs/PenunjukanBandarTab';
 import { MutasiKasTab } from './tabs/MutasiKasTab';
 import { RekapitulasiTab } from './tabs/RekapitulasiTab';
+import { KasOperasionalTab } from './tabs/KasOperasionalTab';
 import { InputComputerCashModal } from './modals/InputComputerCashModal';
 import { BatchComputerCashModal } from './modals/BatchComputerCashModal';
 import { CellPopover, CellPopoverData } from './modals/CellPopover';
 
 interface AuditCabangViewProps {
-  initialTab?: 'bandar' | 'mutasi' | 'rekap';
+  initialTab?: 'bandar' | 'mutasi' | 'rekap' | 'operasional';
 }
 
 export const AuditCabangView: React.FC<AuditCabangViewProps> = ({ 
   initialTab = 'bandar' 
 }) => {
   const { currentUser, reports } = useApp();
-  const isAuditCabangRole = currentUser.role === 'AUDIT_CABANG' || currentUser.role === 'AUDIT_PUSAT';
+  const isAuditCabangRole = currentUser.role === 'AUDIT_CABANG' || currentUser.role === 'AUDIT_PUSAT' || currentUser.role === 'AUDIT_PUSAT_ADMIN';
 
   // Active Tab: dikontrol via Sidebar
-  const [activeAuditTab, setActiveAuditTab] = useState<'bandar' | 'mutasi' | 'rekap'>(initialTab);
+  const [activeAuditTab, setActiveAuditTab] = useState<'bandar' | 'mutasi' | 'rekap' | 'operasional'>(initialTab);
 
   useEffect(() => {
     if (initialTab) {
@@ -109,6 +110,8 @@ export const AuditCabangView: React.FC<AuditCabangViewProps> = ({
       {activeAuditTab === 'bandar' && <PenunjukanBandarTab />}
       
       {activeAuditTab === 'mutasi' && <MutasiKasTab />}
+      
+      {activeAuditTab === 'operasional' && <KasOperasionalTab />}
       
       {activeAuditTab === 'rekap' && (
         <RekapitulasiTab

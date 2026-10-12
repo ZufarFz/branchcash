@@ -31,6 +31,10 @@ export interface RolePermissions {
   // Data Scope
   canViewAllBranches: boolean;
   canViewAuditLogs: boolean;
+  
+  // Super Admin Capabilities
+  canManageMasterData: boolean;
+  canApproveUsers: boolean;
 }
 
 export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
@@ -38,7 +42,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     roleNameId: 'Kasir',
     roleDescription: 'Pencatatan kas fisik pecahan uang dan transaksi non-tunai cabang',
     workLocation: 'Cabang',
-    allowedTabs: ['mutasi-kas', 'input-tunai', 'input-non-tunai'],
+    allowedTabs: ['mutasi-kas', 'input-tunai', 'input-non-tunai', 'profile'],
     defaultTab: 'mutasi-kas',
     canInputCash: true,
     canInputNonCash: true,
@@ -53,13 +57,15 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canForceEdit: false,
     canViewAllBranches: false, // Hanya cabang sendiri
     canViewAuditLogs: false,
+    canManageMasterData: false,
+    canApproveUsers: false,
   },
 
   SPV: {
     roleNameId: 'Supervisor (SPV)',
     roleDescription: 'Supervisi dan review laporan kasir pada level cabang',
     workLocation: 'Cabang',
-    allowedTabs: ['dashboard-cabang'],
+    allowedTabs: ['dashboard-cabang', 'profile'],
     defaultTab: 'dashboard-cabang',
     canInputCash: false,
     canInputNonCash: false,
@@ -74,13 +80,15 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canForceEdit: false,
     canViewAllBranches: false,
     canViewAuditLogs: true,
+    canManageMasterData: false,
+    canApproveUsers: false,
   },
 
   KEPALA_CABANG: {
     roleNameId: 'Kepala Cabang',
     roleDescription: 'Monitoring closing harian dan review operasional cabang',
     workLocation: 'Cabang',
-    allowedTabs: ['dashboard-cabang'],
+    allowedTabs: ['dashboard-cabang', 'profile'],
     defaultTab: 'dashboard-cabang',
     canInputCash: false,
     canInputNonCash: false,
@@ -95,13 +103,15 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canForceEdit: false,
     canViewAllBranches: false,
     canViewAuditLogs: true,
+    canManageMasterData: false,
+    canApproveUsers: false,
   },
 
   AUDIT_CABANG: {
     roleNameId: 'Audit Cabang',
     roleDescription: 'Verifikasi kas level cabang dan input nominal Computer Cash / POS',
     workLocation: 'Cabang',
-    allowedTabs: ['penunjukan-bandar', 'mutasi-kas', 'audit-cabang-pos'],
+    allowedTabs: ['penunjukan-bandar', 'mutasi-kas', 'audit-cabang-pos', 'kas-operasional', 'profile'],
     defaultTab: 'penunjukan-bandar',
     canInputCash: false,
     canInputNonCash: false,
@@ -116,13 +126,15 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canForceEdit: false,
     canViewAllBranches: false,
     canViewAuditLogs: true,
+    canManageMasterData: false,
+    canApproveUsers: false,
   },
 
   PERBANKAN: {
     roleNameId: 'Perbankan (Kantor Pusat)',
     roleDescription: 'Pencocokan dan rekonsiliasi transaksi non-tunai dengan mutasi bank',
     workLocation: 'Kantor Pusat',
-    allowedTabs: ['perbankan'],
+    allowedTabs: ['perbankan', 'profile'],
     defaultTab: 'perbankan',
     canInputCash: false,
     canInputNonCash: false,
@@ -137,13 +149,15 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canForceEdit: false,
     canViewAllBranches: true,
     canViewAuditLogs: false,
+    canManageMasterData: false,
+    canApproveUsers: false,
   },
 
   AUDIT_PUSAT: {
     roleNameId: 'Audit Pusat (Kantor Pusat)',
     roleDescription: 'Approval final, reject, force edit, dan pengawasan seluruh cabang',
     workLocation: 'Kantor Pusat',
-    allowedTabs: ['admin-pusat', 'penunjukan-bandar', 'mutasi-kas', 'audit-cabang-pos', 'perbankan', 'audit-log'],
+    allowedTabs: ['admin-pusat', 'user-management', 'penunjukan-bandar', 'mutasi-kas', 'audit-cabang-pos', 'kas-operasional', 'perbankan', 'audit-log', 'profile'],
     defaultTab: 'admin-pusat',
     canInputCash: false,
     canInputNonCash: false,
@@ -158,6 +172,31 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canForceEdit: true, // PRD Bab 10: Force Edit dengan alasan wajib & audit log
     canViewAllBranches: true,
     canViewAuditLogs: true,
+    canManageMasterData: false, // Master data dikunci khusus Super Admin (AUDIT_PUSAT_ADMIN)
+    canApproveUsers: true, // Persetujuan akun dapat dilakukan oleh Audit Pusat maupun Super Admin
+  },
+
+  AUDIT_PUSAT_ADMIN: {
+    roleNameId: 'Super Admin (Audit Pusat)',
+    roleDescription: 'Super Admin: Akses penuh approval, kelola master data, & persetujuan akun',
+    workLocation: 'Kantor Pusat',
+    allowedTabs: ['admin-pusat', 'user-management', 'master-data', 'penunjukan-bandar', 'mutasi-kas', 'audit-cabang-pos', 'kas-operasional', 'perbankan', 'audit-log', 'profile'],
+    defaultTab: 'admin-pusat',
+    canInputCash: false,
+    canInputNonCash: false,
+    canSubmitReport: false,
+    canEditBeforeApproval: false,
+    canInputComputerCash: false,
+    canReviewSpv: false,
+    canReviewKacab: false,
+    canReconcileBanking: false,
+    canApproveReport: true,
+    canRejectReport: true,
+    canForceEdit: true,
+    canViewAllBranches: true,
+    canViewAuditLogs: true,
+    canManageMasterData: true,
+    canApproveUsers: true,
   }
 };
 

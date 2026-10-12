@@ -49,7 +49,7 @@ export const BandarAssignmentCard: React.FC<BandarAssignmentCardProps> = ({
       return;
     }
     if (isTargetSessionLocked) {
-      setAssignError('Kasir Bandar tidak dapat diubah karena transaksi sudah berjalan pada tanggal ini.');
+      setAssignError('Kasir Bandar tidak dapat diubah karena sudah ada transaksi transfer modal/setor pada tanggal ini.');
       return;
     }
 
@@ -93,7 +93,7 @@ export const BandarAssignmentCard: React.FC<BandarAssignmentCardProps> = ({
                 : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
             }`}>
               {isTargetSessionLocked ? <Lock className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-              <span>{isTargetSessionLocked ? 'Terkunci (Transaksi Ada)' : 'Sesi Aktif (Bisa Diubah)'}</span>
+              <span>{isTargetSessionLocked ? 'Terkunci (Ada Mutasi Modal/Setor)' : 'Sesi Aktif (Bisa Diubah)'}</span>
             </span>
           </div>
         ) : (

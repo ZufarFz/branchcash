@@ -107,7 +107,7 @@ export const reportWriteService = {
     try {
       await supabase.from('cash_reports').update({
         status: 'SUBMITTED',
-        submitted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       }).eq('id', reportId);
     } catch (err) {
       console.warn('Failed to submit report in Supabase:', err);

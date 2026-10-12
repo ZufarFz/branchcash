@@ -150,6 +150,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         allUsers: auth.allUsers,
         approveUser: auth.approveUser,
         rejectUser: auth.rejectUser,
+        updateProfile: auth.updateProfile,
+        adminUpdateUser: auth.adminUpdateUser,
         branches: masterData.branches,
         currentBranch,
         reports: reportState.reports,
