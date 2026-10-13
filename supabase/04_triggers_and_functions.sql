@@ -55,8 +55,16 @@ BEGIN
       v_role := 'KASIR';
     END;
 
-    -- ATURAN MUTLAK: Seluruh akun pendaftar baru wajib berstatus PENDING dan butuh persetujuan
-    v_status := 'PENDING';
+    -- JIKA SISTEM BELUM MEMILIKI AUDIT_PUSAT_ADMIN AKTIF (Bootstrap awal sistem):
+    -- Otomatis jadikan pendaftar pertama sebagai AUDIT_PUSAT_ADMIN dan langsung ACTIVE
+    IF NOT EXISTS (SELECT 1 FROM public.users WHERE role = 'AUDIT_PUSAT_ADMIN' AND status = 'ACTIVE') THEN
+      v_role := 'AUDIT_PUSAT_ADMIN';
+      v_status := 'ACTIVE';
+      v_branch_id := NULL;
+    ELSE
+      -- Pendaftar berikutnya wajib melalui persetujuan Administrator
+      v_status := 'PENDING';
+    END IF;
 
     v_meta_branch := NEW.raw_user_meta_data->>'branch_id';
     IF v_meta_branch IS NOT NULL AND v_meta_branch ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
@@ -100,14 +108,21 @@ RETURNS TRIGGER AS $$
 DECLARE
   v_caller_role user_role;
 BEGIN
-  -- DILARANG MENGUBAH USERNAME untuk siapapun (Anti-Fraud & Konsistensi Audit Trail)
-  IF NEW.username IS DISTINCT FROM OLD.username THEN
+  -- DILARANG MENGUBAH USERNAME jika dipanggil dari sesi auth JWT pengguna
+  IF auth.uid() IS NOT NULL AND NEW.username IS DISTINCT FROM OLD.username THEN
     NEW.username := OLD.username;
   END IF;
 
   -- Kunci ID dan Email agar tidak berubah
   NEW.id := OLD.id;
   NEW.email := OLD.email;
+
+  -- Jika perubahan dilakukan langsung dari SQL Editor / Supabase Studio / Service Role / DBA (auth.uid() IS NULL),
+  -- izinkan langsung tanpa pembatasan anti-tampering JWT
+  IF auth.uid() IS NULL THEN
+    NEW.updated_at := NOW();
+    RETURN NEW;
+  END IF;
 
   -- Dapatkan role pemanggil dari JWT auth
   v_caller_role := public.current_user_role();

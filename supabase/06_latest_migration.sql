@@ -1309,6 +1309,139 @@ SET total_physical = COALESCE((
   WHERE crd.report_id = cr.id
 ), 0);
 
+-- ==============================================================================
+-- UPDATE #22 - 2026-10-13
+-- DESKRIPSI: Izinkan update status/role pengguna langsung dari Supabase Studio /
+--            SQL Editor (auth.uid() IS NULL) dan Auto-Promote Admin Pertama saat Registrasi
+-- ==============================================================================
+
+-- 1. Perbarui trigger proteksi tampering agar membolehkan DBA / SQL Editor / Supabase Studio
+--    mengubah status, role, dan branch_id pengguna tanpa dibatalkan secara diam-diam.
+CREATE OR REPLACE FUNCTION public.protect_user_fields_tampering()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_caller_role user_role;
+BEGIN
+  -- DILARANG MENGUBAH USERNAME jika dipanggil dari sesi auth JWT pengguna
+  IF auth.uid() IS NOT NULL AND NEW.username IS DISTINCT FROM OLD.username THEN
+    NEW.username := OLD.username;
+  END IF;
+
+  -- Kunci ID dan Email agar tidak berubah
+  NEW.id := OLD.id;
+  NEW.email := OLD.email;
+
+  -- Jika perubahan dilakukan langsung dari SQL Editor / Supabase Studio / Service Role / DBA (auth.uid() IS NULL),
+  -- izinkan langsung tanpa pembatasan anti-tampering JWT
+  IF auth.uid() IS NULL THEN
+    NEW.updated_at := NOW();
+    RETURN NEW;
+  END IF;
+
+  -- Dapatkan role pemanggil dari JWT auth
+  v_caller_role := public.current_user_role();
+
+  -- Jika bukan Audit Pusat / Super Admin (pengguna biasa mengedit profil sendiri)
+  IF v_caller_role IS NULL OR v_caller_role NOT IN ('AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN') THEN
+    -- Kunci role, branch_id, dan status agar tidak bisa dieskalasi mandiri
+    NEW.role := OLD.role;
+    NEW.branch_id := OLD.branch_id;
+    NEW.status := OLD.status;
+  END IF;
+
+  -- Jika pemanggil adalah AUDIT_PUSAT (biasa):
+  -- DILARANG mengedit data sesama AUDIT_PUSAT atau AUDIT_PUSAT_ADMIN
+  IF v_caller_role = 'AUDIT_PUSAT' AND OLD.id != auth.uid() THEN
+    IF OLD.role IN ('AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN') THEN
+      RAISE EXCEPTION 'Audit Pusat tidak memiliki wewenang untuk mengubah data sesama Audit Pusat atau Super Admin.';
+    END IF;
+    -- Dilarang mempromosikan pengguna manapun menjadi AUDIT_PUSAT atau AUDIT_PUSAT_ADMIN
+    IF NEW.role IN ('AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN') AND NEW.role IS DISTINCT FROM OLD.role THEN
+      RAISE EXCEPTION 'Hanya Super Admin yang berhak memberikan peran Audit Pusat atau Super Admin.';
+    END IF;
+  END IF;
+
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Pasang ulang trigger
+DROP TRIGGER IF EXISTS trg_protect_user_tampering ON public.users;
+CREATE TRIGGER trg_protect_user_tampering
+  BEFORE UPDATE ON public.users
+  FOR EACH ROW EXECUTE FUNCTION public.protect_user_fields_tampering();
+
+-- 2. Perbarui trigger handle_new_user agar otomatis menjadikan pendaftar pertama
+--    sebagai AUDIT_PUSAT_ADMIN dan langsung ACTIVE jika sistem belum memiliki Super Admin
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_role user_role := 'KASIR';
+  v_branch_id UUID := NULL;
+  v_name TEXT;
+  v_username TEXT;
+  v_meta_role TEXT;
+  v_meta_branch TEXT;
+  v_status VARCHAR(20);
+BEGIN
+  BEGIN
+    v_name := COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1));
+    v_username := COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1));
+    
+    v_meta_role := NEW.raw_user_meta_data->>'role';
+    BEGIN
+      IF v_meta_role IS NOT NULL AND v_meta_role IN ('KASIR', 'SPV', 'KEPALA_CABANG', 'AUDIT_CABANG', 'PERBANKAN', 'AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN') THEN
+        v_role := v_meta_role::user_role;
+      ELSE
+        v_role := 'KASIR';
+      END IF;
+    EXCEPTION WHEN OTHERS THEN
+      v_role := 'KASIR';
+    END;
+
+    -- JIKA SISTEM BELUM MEMILIKI AUDIT_PUSAT_ADMIN AKTIF (Bootstrap awal sistem):
+    -- Otomatis jadikan pendaftar pertama sebagai AUDIT_PUSAT_ADMIN dan langsung ACTIVE
+    IF NOT EXISTS (SELECT 1 FROM public.users WHERE role = 'AUDIT_PUSAT_ADMIN' AND status = 'ACTIVE') THEN
+      v_role := 'AUDIT_PUSAT_ADMIN';
+      v_status := 'ACTIVE';
+      v_branch_id := NULL;
+    ELSE
+      -- Pendaftar berikutnya wajib melalui persetujuan Administrator
+      v_status := 'PENDING';
+    END IF;
+
+    v_meta_branch := NEW.raw_user_meta_data->>'branch_id';
+    IF v_meta_branch IS NOT NULL AND v_meta_branch ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
+      IF EXISTS (SELECT 1 FROM public.branches WHERE id = v_meta_branch::UUID) THEN
+        v_branch_id := v_meta_branch::UUID;
+      END IF;
+    END IF;
+
+    -- Jika peran cabang belum memiliki branch_id valid, pasang ke cabang pertama
+    IF v_branch_id IS NULL AND v_role NOT IN ('AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN', 'PERBANKAN') THEN
+      SELECT id INTO v_branch_id FROM public.branches ORDER BY created_at ASC LIMIT 1;
+    END IF;
+
+    INSERT INTO public.users (id, username, email, name, role, branch_id, status)
+    VALUES (NEW.id, v_username, NEW.email, v_name, v_role, v_branch_id, v_status)
+    ON CONFLICT (id) DO UPDATE SET
+      username = COALESCE(public.users.username, EXCLUDED.username),
+      name = EXCLUDED.name,
+      email = EXCLUDED.email,
+      role = COALESCE(public.users.role, EXCLUDED.role),
+      branch_id = COALESCE(public.users.branch_id, EXCLUDED.branch_id),
+      status = COALESCE(public.users.status, EXCLUDED.status),
+      updated_at = NOW();
+
+  EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'handle_new_user safe fallback caught error: %', SQLERRM;
+  END;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth, extensions;
+
 
 
 
