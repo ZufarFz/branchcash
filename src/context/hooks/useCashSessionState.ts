@@ -55,6 +55,7 @@ export const useCashSessionState = (
   const openCashSession = async (params: {
     businessDate: string;
     bandarUserId: string;
+    computerBeginningCash?: number;
     notes?: string;
   }): Promise<{ success: boolean; session?: BranchCashSession; error?: string }> => {
     if (currentUser.role !== 'AUDIT_CABANG' && currentUser.role !== 'AUDIT_PUSAT' && currentUser.role !== 'AUDIT_PUSAT_ADMIN') {
@@ -75,6 +76,7 @@ export const useCashSessionState = (
         businessDate: params.businessDate,
         bandarUserId: params.bandarUserId,
         assignedBy: currentUser.id,
+        computerBeginningCash: params.computerBeginningCash,
         notes: params.notes,
       });
 
@@ -185,6 +187,62 @@ export const useCashSessionState = (
     }
   };
 
+  // Update Saldo Awal Bandar Menurut Komputer
+  const updateSessionBeginningCash = async (
+    sessionId: string,
+    amount: number
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (currentUser.role !== 'AUDIT_CABANG' && currentUser.role !== 'AUDIT_PUSAT' && currentUser.role !== 'AUDIT_PUSAT_ADMIN') {
+      return { success: false, error: 'Hanya role Audit yang berwenang mengisi saldo awal modal bandar.' };
+    }
+
+    try {
+      const res = await supabaseService.updateSessionBeginningCash(sessionId, amount);
+      if (!res.success) {
+        return { success: false, error: res.error || 'Gagal menyimpan saldo awal komputer.' };
+      }
+
+      setCashSessions(prev => prev.map(s => {
+        if (s.id === sessionId) {
+          return {
+            ...s,
+            computerBeginningCash: amount,
+          };
+        }
+        return s;
+      }));
+
+      const auditEntry: AuditLogEntry = {
+        id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        userId: currentUser.id,
+        userName: currentUser.name,
+        userRole: currentUser.role,
+        action: 'UPDATE_SESSION_BANDAR',
+        branchCode: currentBranch?.code || 'CBG',
+        summary: `Audit Cabang (${currentUser.name}) menginput saldo awal bandar komputer: Rp ${amount.toLocaleString('id-ID')}`,
+        afterData: { sessionId, computerBeginningCash: amount },
+        reason: 'Input saldo awal modal bandar POS',
+      };
+      addAuditLog(auditEntry);
+      supabaseService.insertAuditLog({
+        userId: currentUser.id,
+        userName: currentUser.name,
+        userRole: currentUser.role,
+        action: 'UPDATE_SESSION_BANDAR',
+        branchCode: currentBranch?.code || 'CBG',
+        summary: auditEntry.summary,
+        afterData: { sessionId, computerBeginningCash: amount },
+        reason: auditEntry.reason,
+      });
+
+      triggerRealtimeBroadcast();
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Gagal menyimpan saldo awal komputer.' };
+    }
+  };
+
   const getCashSession = (branchId: string, businessDate: string): BranchCashSession | undefined => {
     return cashSessionsRef.current.find(s => s.branchId === branchId && s.businessDate === businessDate);
   };
@@ -198,6 +256,7 @@ export const useCashSessionState = (
     cashTransfersRef,
     openCashSession,
     updateCashSessionBandar,
+    updateSessionBeginningCash,
     getCashSession,
   };
 };

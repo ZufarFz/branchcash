@@ -27,7 +27,21 @@ export const useReportState = (
       const saved = localStorage.getItem(STORAGE_KEYS.REPORTS);
       if (saved) {
         const parsed: CashReport[] = JSON.parse(saved);
-        return parsed.filter(r => !DUMMY_REPORT_IDS.includes(r.id));
+        return parsed
+          .filter(r => !DUMMY_REPORT_IDS.includes(r.id))
+          .map(r => {
+            const sumCash = (r.denominations || []).reduce((acc, curr) => acc + (curr.subtotal || 0), 0);
+            const nonCash = Number(r.totalNonCash || 0);
+            const totalCash = sumCash;
+            const totalPhysical = totalCash + nonCash;
+            return {
+              ...r,
+              totalCash,
+              totalNonCash: nonCash,
+              totalPhysical,
+              grandTotal: totalCash + nonCash,
+            };
+          });
       }
     } catch (e) {
       console.warn('Error reading saved reports', e);

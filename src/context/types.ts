@@ -66,6 +66,7 @@ export interface AppContextType {
   setCurrentUser: (user: User) => void;
   allUsers: User[];
   approveUser: (userId: string) => Promise<{ success: boolean; error?: string }>;
+  rejectUser: (userId: string) => Promise<{ success: boolean; error?: string }>;
   updateProfile: (name: string, currentPassword: string, newPassword?: string) => Promise<{ success: boolean; error?: string }>;
   adminUpdateUser: (
     userId: string,
@@ -96,11 +97,16 @@ export interface AppContextType {
   refreshFromSupabase: () => Promise<void>;
   clearAllData: () => void;
 
+  // Global Selected Business Date
+  selectedDate: string;
+  setSelectedDate: (date: string) => void;
+
   // Sesi Kas Cabang Harian & Mutasi Kas Silang
   cashSessions: BranchCashSession[];
   cashTransfers: CashierCashTransfer[];
-  openCashSession: (params: { businessDate: string; bandarUserId: string; notes?: string }) => Promise<{ success: boolean; session?: BranchCashSession; error?: string }>;
+  openCashSession: (params: { businessDate: string; bandarUserId: string; computerBeginningCash?: number; notes?: string }) => Promise<{ success: boolean; session?: BranchCashSession; error?: string }>;
   updateCashSessionBandar: (sessionId: string, newBandarUserId: string) => Promise<{ success: boolean; error?: string }>;
+  updateSessionBeginningCash: (sessionId: string, amount: number) => Promise<{ success: boolean; error?: string }>;
   transferCash: (params: { businessDate: string; toUserId: string; transferType: 'MODAL' | 'SETOR'; amount: number; notes?: string }) => Promise<{ success: boolean; error?: string }>;
   confirmCashTransfer: (transferId: string, action: 'CONFIRM' | 'REJECT') => Promise<{ success: boolean; error?: string }>;
   editAndResubmitTransfer: (transferId: string, newAmount: number, newNotes?: string) => Promise<{ success: boolean; error?: string }>;

@@ -22,16 +22,11 @@ export const CashierTransferSummariesTable: React.FC<CashierTransferSummariesTab
   mutasiDateFilter
 }) => {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
-      <div className="px-5 py-3.5 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
-        <div>
-          <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-            Ringkasan Mutasi Kas per Kasir ({summaries.length})
-          </h4>
-          <p className="text-[11px] text-slate-500">
-            Posisi modal dan setoran masing-masing kasir di cabang pada tanggal {mutasiDateFilter === 'ALL' ? 'Semua Tanggal' : formatDate(mutasiDateFilter)}.
-          </p>
-        </div>
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+      <div className="px-4 py-2.5 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
+        <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+          Ringkasan Mutasi per Kasir ({summaries.length})
+        </h4>
       </div>
 
       <div className="overflow-x-auto">

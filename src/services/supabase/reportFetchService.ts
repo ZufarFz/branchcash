@@ -127,9 +127,9 @@ export const reportFetchService = {
         }
 
         const sumCash = denominations.reduce((acc, curr) => acc + (curr.subtotal || 0), 0);
-        const totalCash = sumCash > 0 ? sumCash : Number(raw.total_physical || 0);
         const totalNonCash = Number(raw.total_non_cash || 0);
-        const totalPhysical = Number(raw.total_physical || totalCash);
+        const totalCash = sumCash;
+        const totalPhysical = totalCash + totalNonCash;
         const calculatedGrandTotal = totalCash + totalNonCash;
         const dateIso = raw.created_at || raw.business_date || new Date().toISOString();
 

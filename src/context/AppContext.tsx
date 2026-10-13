@@ -18,6 +18,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const realtimeBroadcastRef = React.useRef<() => void>(() => {});
   const addAuditLogRef = React.useRef<(entry: any) => void>(() => {});
 
+  // Global Selected Business Date State
+  const [selectedDate, setSelectedDate] = React.useState<string>(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  });
+
   // 2. Auth Hook (provides currentUser, allUsers, auth actions)
   const auth = useAuthState(
     useCallback((val: boolean) => setIsSyncingRef.current(val), []),
@@ -171,10 +180,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isSyncing: sync.isSyncing,
         refreshFromSupabase: sync.refreshFromSupabase,
         clearAllData,
+        selectedDate,
+        setSelectedDate,
         cashSessions: cashSession.cashSessions,
         cashTransfers: cashSession.cashTransfers,
         openCashSession: cashSession.openCashSession,
         updateCashSessionBandar: cashSession.updateCashSessionBandar,
+        updateSessionBeginningCash: cashSession.updateSessionBeginningCash,
         transferCash: cashTransfer.transferCash,
         confirmCashTransfer: cashTransfer.confirmCashTransfer,
         editAndResubmitTransfer: cashTransfer.editAndResubmitTransfer,

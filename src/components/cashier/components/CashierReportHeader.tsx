@@ -25,20 +25,6 @@ export const CashierReportHeader: React.FC<CashierReportHeaderProps> = ({
     <>
       <div className="px-4 py-3.5 sm:px-5 border-b border-slate-200 bg-slate-50/60 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-wrap">
-          <label
-            htmlFor="cashier-report-date-picker"
-            className="inline-flex items-center gap-2 bg-white border border-slate-300 hover:border-indigo-400 px-3 py-1.5 rounded-lg shadow-2xs transition-all cursor-pointer"
-          >
-            <span className="text-xs font-medium text-slate-500">Tanggal:</span>
-            <input
-              id="cashier-report-date-picker"
-              type="date"
-              value={selectedDate}
-              onChange={(e) => onDateChange(e.target.value)}
-              className="text-xs font-bold text-slate-800 bg-transparent border-none outline-none cursor-pointer p-0"
-            />
-          </label>
-
           {activeReport ? (
             <StatusBadge status={activeReport.status} size="md" />
           ) : (

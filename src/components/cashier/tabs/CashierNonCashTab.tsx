@@ -55,7 +55,7 @@ export const CashierNonCashTab: React.FC<CashierNonCashTabProps> = ({
             <div className="bg-slate-50 border-b border-slate-200 px-3.5 py-2.5 flex items-center justify-between gap-2 text-xs">
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="font-bold text-slate-800 truncate">
-                  {bankGroup.code} - {bankGroup.name}
+                  {bankGroup.name}
                 </span>
                 <span className="text-[11px] font-mono text-slate-400 shrink-0">
                   ({bankGroup.count})
@@ -81,7 +81,7 @@ export const CashierNonCashTab: React.FC<CashierNonCashTabProps> = ({
                     });
                   }}
                   className="w-full py-2 pl-7 pr-3.5 flex items-center justify-between gap-2 text-left text-[11px] text-slate-600 hover:bg-teal-50/60 hover:text-teal-900 transition-colors cursor-pointer group"
-                  title={`Klik untuk lihat detail rincian ${bankGroup.code} - ${methodItem.name}`}
+                  title={`Klik untuk lihat detail rincian ${bankGroup.name} - ${methodItem.name}`}
                 >
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="truncate group-hover:font-medium group-hover:underline">

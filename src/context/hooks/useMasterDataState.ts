@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Branch, BankOption, PaymentMethodOption, DenomConfig, User } from '../../types';
-import { MASTER_BANKS, MASTER_PAYMENT_METHODS, MASTER_DENOMS } from '../../constants/masterData';
 import { supabaseService } from '../../services/supabaseService';
 import { STORAGE_KEYS } from '../types';
 
@@ -19,10 +18,10 @@ export const useMasterDataState = (
     return [];
   });
 
-  // Master Data state (loaded dynamically or fallback)
-  const [masterDenoms, setMasterDenoms] = useState<DenomConfig[]>(MASTER_DENOMS);
-  const [banks, setBanks] = useState<BankOption[]>(MASTER_BANKS);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodOption[]>(MASTER_PAYMENT_METHODS);
+  // Master Data state (loaded 100% dynamically from Supabase database)
+  const [masterDenoms, setMasterDenoms] = useState<DenomConfig[]>([]);
+  const [banks, setBanks] = useState<BankOption[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodOption[]>([]);
 
   // Master Data Operations (Audit Pusat - Soft Delete Only)
   const saveMasterDenom = async (denom: DenomConfig): Promise<{ success: boolean; error?: string }> => {

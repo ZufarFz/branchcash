@@ -73,6 +73,7 @@ export const AuditPusatFilterBar: React.FC<AuditPusatFilterBarProps> = ({
           <input
             id="filter-audit-date"
             type="date"
+            max={new Date().toISOString().split('T')[0]}
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
             className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer"

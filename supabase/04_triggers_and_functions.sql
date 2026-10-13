@@ -188,22 +188,30 @@ DECLARE
 BEGIN
   v_report_id := COALESCE(NEW.report_id, OLD.report_id);
 
-  SELECT COALESCE(SUM(subtotal), 0)
-  INTO v_physical
-  FROM public.cash_report_denominations
-  WHERE report_id = v_report_id;
+  IF TG_TABLE_NAME = 'cash_report_denominations' THEN
+    SELECT COALESCE(SUM(subtotal), 0)
+    INTO v_physical
+    FROM public.cash_report_denominations
+    WHERE report_id = v_report_id;
 
-  SELECT COALESCE(SUM(amount), 0)
-  INTO v_non_cash
-  FROM public.non_cash_transactions
-  WHERE report_id = v_report_id;
+    UPDATE public.cash_reports
+    SET 
+      total_physical = v_physical,
+      updated_at = NOW()
+    WHERE id = v_report_id;
 
-  UPDATE public.cash_reports
-  SET 
-    total_physical = v_physical + v_non_cash,
-    total_non_cash = v_non_cash,
-    updated_at = NOW()
-  WHERE id = v_report_id;
+  ELSIF TG_TABLE_NAME = 'non_cash_transactions' THEN
+    SELECT COALESCE(SUM(amount), 0)
+    INTO v_non_cash
+    FROM public.non_cash_transactions
+    WHERE report_id = v_report_id;
+
+    UPDATE public.cash_reports
+    SET 
+      total_non_cash = v_non_cash,
+      updated_at = NOW()
+    WHERE id = v_report_id;
+  END IF;
 
   RETURN NULL;
 END;

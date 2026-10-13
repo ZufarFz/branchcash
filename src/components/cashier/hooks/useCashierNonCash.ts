@@ -20,20 +20,38 @@ export const useCashierNonCash = (
 
   // Single Non-Cash Modal
   const [showAddNonCashModal, setShowAddNonCashModal] = useState<boolean>(false);
-  const [ncBank, setNcBank] = useState<string>(banks[0]?.code || 'BCA');
-  const [ncMethod, setNcMethod] = useState<string>(paymentMethods[0]?.code || 'DEBIT');
+  const [ncBank, setNcBank] = useState<string>(banks[0]?.name || '');
+  const [ncMethod, setNcMethod] = useState<string>(paymentMethods[0]?.name || '');
   const [ncAmount, setNcAmount] = useState<string>('');
   const [isSubmittingNc, setIsSubmittingNc] = useState<boolean>(false);
 
   // Batch Non-Cash Modal
   const [showBatchNonCashModal, setShowBatchNonCashModal] = useState<boolean>(false);
-  const [batchBank, setBatchBank] = useState<string>(banks[0]?.code || 'BCA');
-  const [batchMethod, setBatchMethod] = useState<string>(paymentMethods[0]?.code || 'DEBIT');
+  const [batchBank, setBatchBank] = useState<string>(banks[0]?.name || '');
+  const [batchMethod, setBatchMethod] = useState<string>(paymentMethods[0]?.name || '');
   const [batchAmountInput, setBatchAmountInput] = useState<string>('');
   const [isSubmittingBatch, setIsSubmittingBatch] = useState<boolean>(false);
   const [savingTxIds, setSavingTxIds] = useState<string[]>([]);
   const [lastAddedTxId, setLastAddedTxId] = useState<string | null>(null);
   const batchInputRef = useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (banks.length > 0 && (!ncBank || !banks.some((b) => b.name === ncBank))) {
+      setNcBank(banks[0].name);
+    }
+    if (banks.length > 0 && (!batchBank || !banks.some((b) => b.name === batchBank))) {
+      setBatchBank(banks[0].name);
+    }
+  }, [banks, ncBank, batchBank]);
+
+  React.useEffect(() => {
+    if (paymentMethods.length > 0 && (!ncMethod || !paymentMethods.some((m) => m.name === ncMethod))) {
+      setNcMethod(paymentMethods[0].name);
+    }
+    if (paymentMethods.length > 0 && (!batchMethod || !paymentMethods.some((m) => m.name === batchMethod))) {
+      setBatchMethod(paymentMethods[0].name);
+    }
+  }, [paymentMethods, ncMethod, batchMethod]);
 
   // Table Sort & Act Mode
   const [tableSortField, setTableSortField] = useState<'no' | 'amount' | 'time'>('no');

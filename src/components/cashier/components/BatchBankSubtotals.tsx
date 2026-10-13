@@ -49,7 +49,7 @@ export const BatchBankSubtotals: React.FC<BatchBankSubtotalsProps> = ({
                   <div className="bg-slate-50 border-b border-slate-200 px-3.5 py-2.5 flex items-center justify-between gap-2 text-xs">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="font-bold text-slate-800 truncate">
-                        {bankGroup.code} - {bankGroup.name}
+                        {bankGroup.name}
                       </span>
                       <span className="text-[11px] font-mono text-slate-400 shrink-0">
                         ({bankGroup.count})
@@ -77,7 +77,7 @@ export const BatchBankSubtotals: React.FC<BatchBankSubtotalsProps> = ({
                               ? 'bg-teal-50/70 text-teal-800 font-semibold'
                               : 'hover:bg-slate-50 text-slate-600'
                           }`}
-                          title={`Klik untuk beralih ke ${bankGroup.code} - ${methodItem.name}`}
+                          title={`Klik untuk beralih ke ${bankGroup.name} - ${methodItem.name}`}
                         >
                           <div className="flex items-center gap-1.5 min-w-0">
                             <span className="truncate">{methodItem.name}</span>

@@ -28,15 +28,52 @@ export const TransferHeaderCard: React.FC<TransferHeaderCardProps> = ({
   totalModalReceived,
   totalSetorSent
 }) => {
+  const todayStr = React.useMemo(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }, []);
+
   if (!currentSession) {
     return (
-      <div className="bg-amber-50/90 border border-amber-300 rounded-xl p-5 shadow-xs flex items-start gap-3">
-        <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
-        <div className="space-y-1">
-          <h4 className="text-sm font-bold text-amber-950">Sesi Kas Cabang Belum Dibuka</h4>
-          <p className="text-xs text-amber-900 leading-relaxed">
-            Audit Cabang belum membuka sesi dan menunjuk Kasir Bandar untuk tanggal <strong>{formatDate(selectedDate)}</strong>. Perpindahan modal maupun setoran belum dapat diproses.
-          </p>
+      <div className="bg-amber-50/90 border border-amber-300 rounded-xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <h4 className="text-sm font-bold text-amber-950">Sesi Kas Cabang Belum Dibuka</h4>
+            <p className="text-xs text-amber-900 leading-relaxed">
+              Audit Cabang belum membuka sesi dan menunjuk Kasir Bandar untuk tanggal <strong>{formatDate(selectedDate)}</strong>. Perpindahan modal maupun setoran belum dapat diproses.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+          <label
+            htmlFor="cashier-transfer-date-picker"
+            className="inline-flex items-center gap-1.5 bg-white hover:bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 cursor-pointer transition-colors shadow-2xs"
+          >
+            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+            <span>Ubah Tanggal:</span>
+            <input
+              id="cashier-transfer-date-picker"
+              type="date"
+              value={selectedDate}
+              max={todayStr}
+              onChange={(e) => onDateChange(e.target.value)}
+              className="bg-transparent border-none outline-none font-bold text-slate-900 cursor-pointer p-0 text-xs"
+            />
+          </label>
+
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer shadow-2xs"
+            title="Refresh Mutasi"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
         </div>
       </div>
     );
@@ -74,6 +111,7 @@ export const TransferHeaderCard: React.FC<TransferHeaderCardProps> = ({
               id="cashier-transfer-date-picker"
               type="date"
               value={selectedDate}
+              max={todayStr}
               onChange={(e) => onDateChange(e.target.value)}
               className="bg-transparent border-none outline-none font-bold text-slate-900 cursor-pointer p-0 text-xs"
             />

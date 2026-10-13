@@ -94,9 +94,9 @@ export const BatchTxTable: React.FC<BatchTxTableProps> = ({
             onChange={(e) => handleBatchBankChange(e.target.value)}
             className="w-full text-xs py-2 px-2.5 bg-white border border-slate-300 rounded-lg font-semibold focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all shadow-2xs"
           >
-            {banks.map((b) => (
-              <option key={b.id} value={b.code}>
-                {b.code} - {b.name}
+            {banks.filter(b => b.isActive !== false).map((b) => (
+              <option key={b.id} value={b.name}>
+                {b.name}
               </option>
             ))}
           </select>
@@ -112,8 +112,8 @@ export const BatchTxTable: React.FC<BatchTxTableProps> = ({
             onChange={(e) => handleBatchMethodChange(e.target.value)}
             className="w-full text-xs py-2 px-2.5 bg-white border border-slate-300 rounded-lg font-semibold focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all shadow-2xs"
           >
-            {paymentMethods.map((m) => (
-              <option key={m.id} value={m.code}>
+            {paymentMethods.filter(m => m.isActive !== false).map((m) => (
+              <option key={m.id} value={m.name}>
                 {m.name}
               </option>
             ))}

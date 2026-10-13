@@ -18,7 +18,7 @@ export const reportWriteService = {
         branch_id: report.branchId,
         cashier_id: report.cashierId,
         status: report.status,
-        total_physical: report.totalPhysical,
+        total_physical: report.totalCash,
         total_non_cash: report.totalNonCash,
         notes: report.notes || null,
       });

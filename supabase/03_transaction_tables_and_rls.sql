@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS public.branch_cash_sessions (
   bandar_user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
   assigned_by UUID NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
   status report_status NOT NULL DEFAULT 'DRAFT',
+  computer_beginning_cash NUMERIC(15, 2) DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
 
@@ -34,7 +35,7 @@ CREATE TABLE IF NOT EXISTS public.cash_reports (
   cashier_id UUID NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
   status report_status NOT NULL DEFAULT 'DRAFT',
   
-  -- Kas Fisik Kasir (Tunai + Non-Tunai)
+  -- Kas Fisik Kasir (Khusus Uang Tunai Kertas & Koin)
   total_physical NUMERIC(15, 2) NOT NULL DEFAULT 0,
   total_non_cash NUMERIC(15, 2) NOT NULL DEFAULT 0,
 

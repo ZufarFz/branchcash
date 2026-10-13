@@ -9,33 +9,31 @@ export const formatNumberWithDots = (val: string): string => {
   return new Intl.NumberFormat('id-ID').format(parseInt(digits, 10));
 };
 
-export const isBankMatch = (txBank: string, filterCode: string, banks?: BankOption[]) => {
-  if (!txBank || !filterCode) return false;
-  const tB = txBank.trim().toLowerCase();
-  const fC = filterCode.trim().toLowerCase();
-  if (tB === fC) return true;
-  if (banks) {
-    const bObj = banks.find((b) => b.code.toLowerCase() === fC);
+export const isBankMatch = (txBank: string, filterName: string, banks?: BankOption[]) => {
+  if (!txBank || !filterName) return false;
+  const tB = (txBank || '').trim().toLowerCase();
+  const fN = (filterName || '').trim().toLowerCase();
+  if (tB === fN) return true;
+  if (banks && Array.isArray(banks)) {
+    const bObj = banks.find((b) => (b.name || '').toLowerCase() === fN);
     if (bObj) {
-      const bName = bObj.name.toLowerCase();
-      if (tB === bName) return true;
-      if (tB.includes(fC) || bName.includes(tB)) return true;
+      const bName = (bObj.name || '').toLowerCase();
+      if (tB === bName || tB.includes(fN) || fN.includes(tB)) return true;
     }
   }
   return false;
 };
 
-export const isMethodMatch = (txMethod: string, filterCode: string, paymentMethods?: PaymentMethodOption[]) => {
-  if (!txMethod || !filterCode) return false;
-  const tM = txMethod.trim().toLowerCase();
-  const fC = filterCode.trim().toLowerCase();
-  if (tM === fC) return true;
-  if (paymentMethods) {
-    const mObj = paymentMethods.find((m) => m.code.toLowerCase() === fC);
+export const isMethodMatch = (txMethod: string, filterName: string, paymentMethods?: PaymentMethodOption[]) => {
+  if (!txMethod || !filterName) return false;
+  const tM = (txMethod || '').trim().toLowerCase();
+  const fN = (filterName || '').trim().toLowerCase();
+  if (tM === fN) return true;
+  if (paymentMethods && Array.isArray(paymentMethods)) {
+    const mObj = paymentMethods.find((m) => (m.name || '').toLowerCase() === fN);
     if (mObj) {
-      const mName = mObj.name.toLowerCase();
-      if (tM === mName) return true;
-      if (tM.includes(fC) || mName.includes(tM)) return true;
+      const mName = (mObj.name || '').toLowerCase();
+      if (tM === mName || tM.includes(fN) || fN.includes(tM)) return true;
     }
   }
   return false;
@@ -63,27 +61,33 @@ export const getActiveBankGroups = (
   paymentMethods: PaymentMethodOption[]
 ): BankGroupSummary[] => {
   const allNonCashTxs = activeReport?.nonCashTransactions || [];
+  const safeBanks = Array.isArray(banks) ? banks : [];
+  const safeMethods = Array.isArray(paymentMethods) ? paymentMethods : [];
 
   const resolveBankInfo = (txBank: string) => {
     const clean = (txBank || '').trim();
-    const exact = banks.find(
-      (b) => b.code.toLowerCase() === clean.toLowerCase() || b.name.toLowerCase() === clean.toLowerCase()
-    );
+    const cleanLower = clean.toLowerCase();
+    const exact = safeBanks.find((b) => (b.name || '').toLowerCase() === cleanLower);
     if (exact) return exact;
-    const fuzzy = banks.find((b) => isBankMatch(clean, b.code, banks));
+    const fuzzy = safeBanks.find((b) => {
+      const bName = (b.name || '').toLowerCase();
+      return bName.includes(cleanLower) || cleanLower.includes(bName);
+    });
     if (fuzzy) return fuzzy;
-    return { id: clean || 'other', code: clean || 'Lainnya', name: clean || 'Bank Lainnya', color: '#0d9488' };
+    return { id: clean || 'other', code: clean || 'Bank Lainnya', name: clean || 'Bank Lainnya', color: '#0d9488' };
   };
 
   const resolveMethodInfo = (txMethod: string) => {
     const clean = (txMethod || '').trim();
-    const exact = paymentMethods.find(
-      (m) => m.code.toLowerCase() === clean.toLowerCase() || m.name.toLowerCase() === clean.toLowerCase()
-    );
+    const cleanLower = clean.toLowerCase();
+    const exact = safeMethods.find((m) => (m.name || '').toLowerCase() === cleanLower);
     if (exact) return exact;
-    const fuzzy = paymentMethods.find((m) => isMethodMatch(clean, m.code, paymentMethods));
+    const fuzzy = safeMethods.find((m) => {
+      const mName = (m.name || '').toLowerCase();
+      return mName.includes(cleanLower) || cleanLower.includes(mName);
+    });
     if (fuzzy) return fuzzy;
-    return { id: clean || 'other', code: clean || 'Lainnya', name: clean || 'Metode Lainnya' };
+    return { id: clean || 'other', code: clean || 'Metode Lainnya', name: clean || 'Metode Lainnya' };
   };
 
   const bankMap = new Map<
@@ -104,16 +108,18 @@ export const getActiveBankGroups = (
     const bInfo = resolveBankInfo(tx.bank);
     const mInfo = resolveMethodInfo(tx.paymentMethod);
 
-    const bKey = bInfo.code.toLowerCase();
-    const mKey = mInfo.code.toLowerCase();
+    const bName = bInfo.name;
+    const mName = mInfo.name;
+    const bKey = bName.toLowerCase();
+    const mKey = mName.toLowerCase();
 
-    const bSortIdx = banks.findIndex((b) => b.code.toLowerCase() === bKey);
-    const mSortIdx = paymentMethods.findIndex((m) => m.code.toLowerCase() === mKey);
+    const bSortIdx = safeBanks.findIndex((b) => (b.name || '').toLowerCase() === bKey);
+    const mSortIdx = safeMethods.findIndex((m) => (m.name || '').toLowerCase() === mKey);
 
     if (!bankMap.has(bKey)) {
       bankMap.set(bKey, {
-        code: bInfo.code,
-        name: bInfo.name,
+        code: bName,
+        name: bName,
         color: bInfo.color || '#0d9488',
         sortIndex: bSortIdx === -1 ? 999 : bSortIdx,
         subtotal: 0,
@@ -128,8 +134,8 @@ export const getActiveBankGroups = (
 
     if (!bGroup.methodsMap.has(mKey)) {
       bGroup.methodsMap.set(mKey, {
-        code: mInfo.code,
-        name: mInfo.name,
+        code: mName,
+        name: mName,
         sortIndex: mSortIdx === -1 ? 999 : mSortIdx,
         subtotal: 0,
         count: 0,

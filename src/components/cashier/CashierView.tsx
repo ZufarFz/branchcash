@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { CashReport } from '../../types';
 import { formatDate } from '../../utils/formatters';
-import { AlertCircle, AlertTriangle } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Info } from 'lucide-react';
 import { getActiveBankGroups, isBankMatch, isMethodMatch } from './utils/cashierNonCashHelpers';
 import { CashierTransfersTab } from './tabs/CashierTransfersTab';
 import { CashierCashTab } from './tabs/CashierCashTab';
@@ -18,17 +18,19 @@ export interface CashierViewProps {
   initialMode?: 'all' | 'cash' | 'non-cash' | 'transfers';
 }
 
-export const CashierView: React.FC<CashierViewProps> = ({ 
-  initialMode = 'transfers' 
+export const CashierView: React.FC<CashierViewProps> = ({
+  initialMode = 'transfers'
 }) => {
-  const { 
-    currentUser, 
-    reports, 
-    banks, 
+  const {
+    currentUser,
+    reports,
+    banks,
     paymentMethods,
-    createReport, 
+    createReport,
     resubmitRevision,
-    refreshFromSupabase
+    refreshFromSupabase,
+    selectedDate,
+    setSelectedDate
   } = useApp();
 
   const isCashierRole = currentUser.role === 'KASIR';
@@ -56,30 +58,15 @@ export const CashierView: React.FC<CashierViewProps> = ({
     return r.cashierId === currentUser.id || r.branchId === currentUser.branchId;
   });
 
-  const [selectedDate, setSelectedDate] = useState<string>(() => {
-    const cashierReports = reports.filter((r) => r.cashierId === currentUser.id);
-    if (cashierReports.length > 0) {
-      const sorted = [...cashierReports].sort((a, b) => b.businessDate.localeCompare(a.businessDate));
-      return sorted[0].businessDate;
-    }
-    return new Date().toISOString().split('T')[0];
-  });
-
-  const [hasAutoSetLatestDate, setHasAutoSetLatestDate] = useState<boolean>(false);
-
   useEffect(() => {
-    if (!hasAutoSetLatestDate && myReports.length > 0) {
-      const sorted = [...myReports].sort((a, b) => b.businessDate.localeCompare(a.businessDate));
-      if (sorted[0]?.businessDate) {
-        setSelectedDate(sorted[0].businessDate);
-        setHasAutoSetLatestDate(true);
-      }
+    const foundLocal = myReports.some((r) => r.businessDate === selectedDate);
+    if (!foundLocal) {
+      refreshFromSupabase();
     }
-  }, [myReports, hasAutoSetLatestDate]);
+  }, [selectedDate]);
 
   const handleDateChange = async (newDate: string) => {
     setSelectedDate(newDate);
-    setHasAutoSetLatestDate(true);
 
     const foundLocal = myReports.some((r) => r.businessDate === newDate);
     if (!foundLocal) {
@@ -142,17 +129,18 @@ export const CashierView: React.FC<CashierViewProps> = ({
         />
       ) : (
         <>
-          {!transfers.currentSession ? (
-            <div className="bg-amber-50/90 border border-amber-300 rounded-xl p-4 shadow-xs flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <h4 className="text-sm font-bold text-amber-950">Sesi Kas Cabang Belum Dibuka</h4>
-                <p className="text-xs text-amber-900">
-                  Audit Cabang belum membuka sesi dan menunjuk Kasir Bandar untuk tanggal <strong>{formatDate(selectedDate)}</strong>. Pembuatan laporan kas fisik dan non-tunai terkunci hingga sesi dibuka.
-                </p>
+          {!transfers.currentSession && (
+            <div className="bg-blue-50/80 border border-blue-200 rounded-xl p-3.5 shadow-2xs flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2 text-blue-900">
+                <Info className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>
+                  Bandar belum di tunjuk untuk tanggal <strong>{formatDate(selectedDate)}</strong>. Segera Hubungi audit cabang untuk menunjuk bandar.
+                </span>
               </div>
             </div>
-          ) : transfers.pendingReceivedTransfers.length > 0 ? (
+          )}
+
+          {transfers.currentSession && transfers.pendingReceivedTransfers.length > 0 && (
             <div className="bg-amber-50 border border-amber-300 rounded-xl p-3 shadow-2xs flex items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-2 text-amber-900">
                 <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
@@ -168,9 +156,9 @@ export const CashierView: React.FC<CashierViewProps> = ({
                 Buka Tab Modal & Setor ➔
               </button>
             </div>
-          ) : null}
+          )}
 
-          <div className={`bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs ${!transfers.currentSession ? 'opacity-60 pointer-events-none select-none' : ''}`}>
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
             <CashierReportHeader
               selectedDate={selectedDate}
               onDateChange={handleDateChange}

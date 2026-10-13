@@ -5,7 +5,6 @@ import {
   Lock, 
   CheckCircle2, 
   AlertCircle, 
-  Info, 
   Loader2 
 } from 'lucide-react';
 
@@ -21,7 +20,6 @@ interface BandarAssignmentCardProps {
 
 export const BandarAssignmentCard: React.FC<BandarAssignmentCardProps> = ({
   targetBandarDate,
-  setTargetBandarDate,
   targetSession,
   isTargetSessionLocked,
   branchCashiers,
@@ -43,13 +41,13 @@ export const BandarAssignmentCard: React.FC<BandarAssignmentCardProps> = ({
     }
   }, [targetSession, branchCashiers, targetBandarDate]);
 
-  const handleSave = async () => {
+  const handleSaveBandar = async () => {
     if (!selectedBandarId) {
       setAssignError('Pilih kasir terlebih dahulu.');
       return;
     }
     if (isTargetSessionLocked) {
-      setAssignError('Kasir Bandar tidak dapat diubah karena sudah ada transaksi transfer modal/setor pada tanggal ini.');
+      setAssignError('Kasir Bandar tidak dapat diubah karena sudah ada transaksi transfer modal/setor.');
       return;
     }
 
@@ -69,140 +67,52 @@ export const BandarAssignmentCard: React.FC<BandarAssignmentCardProps> = ({
     }
   };
 
-  const setQuickDate = (daysAhead: number) => {
-    const d = new Date();
-    d.setDate(d.getDate() + daysAhead);
-    setTargetBandarDate(d.toISOString().split('T')[0]);
-  };
-
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-        <div>
-          <h3 className="text-sm font-bold text-slate-900">Penunjukan Kasir Bandar Harian</h3>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Pilih tanggal bebas untuk membuka sesi atau menjadwalkan Kasir Bandar hingga 7 hari ke depan.
-          </p>
+    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs space-y-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-bold text-slate-900">Penunjukan Kasir Bandar</h3>
+          <span className="text-xs font-semibold text-slate-500">({formatDate(targetBandarDate)})</span>
         </div>
 
         {targetSession ? (
-          <div className="flex items-center gap-2">
-            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
-              isTargetSessionLocked 
-                ? 'bg-amber-100 text-amber-800 border border-amber-300' 
-                : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-            }`}>
-              {isTargetSessionLocked ? <Lock className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-              <span>{isTargetSessionLocked ? 'Terkunci (Ada Mutasi Modal/Setor)' : 'Sesi Aktif (Bisa Diubah)'}</span>
-            </span>
-          </div>
+          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+            isTargetSessionLocked 
+              ? 'bg-amber-100 text-amber-800 border border-amber-300' 
+              : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+          }`}>
+            {isTargetSessionLocked ? <Lock className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />}
+            <span>{isTargetSessionLocked ? 'Bandar Terkunci' : 'Sesi Aktif'}</span>
+          </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-            <AlertCircle className="w-3.5 h-3.5 text-slate-400" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+            <AlertCircle className="w-3 h-3 text-slate-400" />
             <span>Sesi Belum Dibuka</span>
           </span>
         )}
       </div>
 
-      <div>
-        <label className="block text-xs font-bold text-slate-700 mb-1.5">
-          Pilih Tanggal Sesi Kas:
-        </label>
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="date"
-            value={targetBandarDate}
-            onChange={(e) => setTargetBandarDate(e.target.value)}
-            className="text-xs font-bold text-slate-800 bg-white border border-slate-300 px-3 py-2 rounded-lg shadow-2xs focus:ring-2 focus:ring-amber-500 focus:outline-none cursor-pointer"
-          />
-          <button
-            type="button"
-            onClick={() => setQuickDate(0)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer border ${
-              targetBandarDate === new Date().toISOString().split('T')[0]
-                ? 'bg-amber-500 text-white border-amber-600 font-bold'
-                : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-            }`}
-          >
-            Hari Ini
-          </button>
-          <button
-            type="button"
-            onClick={() => setQuickDate(1)}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 cursor-pointer"
-          >
-            Besok (+1)
-          </button>
-          <button
-            type="button"
-            onClick={() => setQuickDate(2)}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 cursor-pointer"
-          >
-            Lusa (+2)
-          </button>
-          <button
-            type="button"
-            onClick={() => setQuickDate(7)}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 cursor-pointer"
-          >
-            +7 Hari
-          </button>
-        </div>
-      </div>
-
       {assignError && (
-        <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700 flex items-center gap-2">
+        <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700 flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{assignError}</span>
         </div>
       )}
 
       {assignSuccess && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700 flex items-center gap-2">
+        <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700 flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <span>{assignSuccess}</span>
         </div>
       )}
 
-      {isTargetSessionLocked ? (
-        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2.5">
-          <Lock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-          <div>
-            <strong className="block font-bold text-amber-950">
-              Kasir Bandar Terkunci untuk Tanggal {formatDate(targetBandarDate)}
-            </strong>
-            <span>
-              Sesi ini sudah memiliki transaksi mutasi kas ({targetSession?.transferCount || 0} mutasi) atau laporan kasir ({targetSession?.reportCount || 0} laporan). Kasir Bandar tidak dapat diubah lagi.
-            </span>
-          </div>
-        </div>
-      ) : targetSession ? (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 flex items-start gap-2.5">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-          <div>
-            <strong className="block font-bold text-emerald-950">Sesi Belum Memiliki Transaksi</strong>
-            <span>Belum ada mutasi modal/setor atau laporan kasir yang dibuat pada sesi ini. Anda masih dapat mengubah Kasir Bandar jika diperlukan.</span>
-          </div>
-        </div>
-      ) : (
-        <div className="p-3 bg-sky-50 border border-sky-200 rounded-lg text-xs text-sky-800 flex items-start gap-2.5">
-          <Info className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-          <div>
-            <strong className="block font-bold text-sky-950">Sesi Belum Dibuka</strong>
-            <span>Silakan tentukan Kasir Bandar di bawah ini untuk membuka sesi kas cabang pada tanggal {formatDate(targetBandarDate)}.</span>
-          </div>
-        </div>
-      )}
-
-      <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-end gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-end gap-3">
         <div className="flex-1">
           <label className="block text-xs font-bold text-slate-700 mb-1">
-            Pilih Kasir Bandar:
+            Kasir Bandar Terpilih:
           </label>
           {branchCashiers.length === 0 ? (
-            <p className="text-xs text-rose-600 italic">
-              Belum ada kasir terdaftar di cabang ini.
-            </p>
+            <p className="text-xs text-rose-600 italic">Belum ada kasir terdaftar di cabang ini.</p>
           ) : (
             <select
               value={selectedBandarId}
@@ -222,7 +132,7 @@ export const BandarAssignmentCard: React.FC<BandarAssignmentCardProps> = ({
         {isAuditCabangRole && (
           <button
             type="button"
-            onClick={handleSave}
+            onClick={handleSaveBandar}
             disabled={isAssigningBandar || isTargetSessionLocked || branchCashiers.length === 0}
             className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-2xs transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
           >
@@ -240,3 +150,5 @@ export const BandarAssignmentCard: React.FC<BandarAssignmentCardProps> = ({
     </div>
   );
 };
+
+

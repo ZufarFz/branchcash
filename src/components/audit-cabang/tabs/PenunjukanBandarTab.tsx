@@ -18,19 +18,18 @@ export const PenunjukanBandarTab: React.FC<PenunjukanBandarTabProps> = ({
     cashSessions, 
     allUsers, 
     openCashSession, 
-    updateCashSessionBandar 
+    updateCashSessionBandar,
+    updateSessionBeginningCash,
+    selectedDate: globalDate,
+    setSelectedDate: setGlobalDate
   } = useApp();
 
   const isAuditCabangRole = currentUser.role === 'AUDIT_CABANG' || currentUser.role === 'AUDIT_PUSAT' || currentUser.role === 'AUDIT_PUSAT_ADMIN';
   const currentBranchId = currentUser.branchId || currentBranch?.id;
 
-  const [internalDate, setInternalDate] = useState<string>(() => {
-    return externalDate || new Date().toISOString().split('T')[0];
-  });
-
-  const targetBandarDate = externalDate || internalDate;
+  const targetBandarDate = externalDate || globalDate;
   const setTargetBandarDate = (date: string) => {
-    setInternalDate(date);
+    setGlobalDate(date);
     if (onSelectDate) onSelectDate(date);
   };
 
@@ -59,16 +58,24 @@ export const PenunjukanBandarTab: React.FC<PenunjukanBandarTabProps> = ({
 
   const handleSaveBandar = async (selectedBandarId: string) => {
     if (targetSession) {
-      return await updateCashSessionBandar(targetSession.id, selectedBandarId);
+      if (targetSession.bandarUserId !== selectedBandarId) {
+        return await updateCashSessionBandar(targetSession.id, selectedBandarId);
+      }
+      return { success: true };
     }
     return await openCashSession({
       businessDate: targetBandarDate,
       bandarUserId: selectedBandarId,
+      computerBeginningCash: 0,
     });
   };
 
+  const handleSaveBeginningCash = async (sessionId: string, amount: number) => {
+    return await updateSessionBeginningCash(sessionId, amount);
+  };
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
+    <div className="space-y-4 animate-in fade-in duration-200">
       <BandarAssignmentCard
         targetBandarDate={targetBandarDate}
         setTargetBandarDate={setTargetBandarDate}
@@ -82,6 +89,8 @@ export const PenunjukanBandarTab: React.FC<PenunjukanBandarTabProps> = ({
         branchSessions={branchSessions}
         targetBandarDate={targetBandarDate}
         onSelectDate={setTargetBandarDate}
+        onSaveBeginningCash={handleSaveBeginningCash}
+        isAuditCabangRole={isAuditCabangRole}
       />
     </div>
   );

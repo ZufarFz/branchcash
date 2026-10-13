@@ -106,7 +106,7 @@ export const AuditCabangView: React.FC<AuditCabangViewProps> = ({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {activeAuditTab === 'bandar' && <PenunjukanBandarTab />}
       
       {activeAuditTab === 'mutasi' && <MutasiKasTab />}

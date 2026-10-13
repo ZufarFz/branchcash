@@ -21,7 +21,7 @@ export const RekapitulasiTab: React.FC<RekapitulasiTabProps> = ({
   activeCellPopover,
   onCellClick
 }) => {
-  const { currentUser, reports, masterDenoms } = useApp();
+  const { currentUser, reports, masterDenoms, selectedDate } = useApp();
 
   const [isExpandedDetails, setIsExpandedDetails] = useState<boolean>(false);
   const [posColumnMode, setPosColumnMode] = useState<'KOMPUTER' | 'SELISIH'>('KOMPUTER');
@@ -38,19 +38,7 @@ export const RekapitulasiTab: React.FC<RekapitulasiTabProps> = ({
       : [];
   }, [masterDenoms]);
 
-  const availableDates = useMemo(() => {
-    const dates = Array.from(new Set(branchReports.map((r) => r.businessDate))).filter(Boolean) as string[];
-    dates.sort((a, b) => b.localeCompare(a));
-    return dates;
-  }, [branchReports]);
-
-  const [selectedDate, setSelectedDate] = useState<string>(() => {
-    if (availableDates.length > 0) return availableDates[0];
-    return new Date().toISOString().split('T')[0];
-  });
-
   const filteredReports = useMemo(() => {
-    if (selectedDate === 'ALL') return branchReports;
     return branchReports.filter((r) => r.businessDate === selectedDate);
   }, [branchReports, selectedDate]);
 
@@ -102,58 +90,23 @@ export const RekapitulasiTab: React.FC<RekapitulasiTabProps> = ({
   }, [filteredReports]);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
-      {/* Control Bar: Tanggal Bisnis & Tombol Batch Input */}
-      <div className="bg-white rounded-xl border border-slate-200 px-4 py-3.5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
-            <Calendar className="w-4 h-4 text-purple-600" />
-            <span>Tanggal:</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {availableDates.slice(0, 4).map((d) => (
-              <button
-                key={d}
-                type="button"
-                onClick={() => setSelectedDate(d)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  selectedDate === d
-                    ? 'bg-purple-600 text-white shadow-2xs'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                {formatDate(d)}
-              </button>
-            ))}
-
-            {availableDates.length > 4 && (
-              <button
-                type="button"
-                onClick={() => setSelectedDate('ALL')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  selectedDate === 'ALL'
-                    ? 'bg-purple-600 text-white shadow-2xs'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                Semua ({availableDates.length})
-              </button>
-            )}
-          </div>
+    <div className="space-y-4 animate-in fade-in duration-200">
+      {/* Control Bar Ringkas */}
+      <div className="bg-white rounded-xl border border-slate-200 px-4 py-2.5 shadow-2xs flex items-center justify-between gap-3">
+        <div className="text-xs font-bold text-slate-800 flex items-center gap-2">
+          <span>{filteredReports.length} Laporan Kasir</span>
+          <span className="text-slate-400 font-normal">({formatDate(selectedDate)})</span>
         </div>
 
-        <div className="flex items-center gap-3 self-start md:self-auto flex-wrap">
-          <button
-            id="btn-open-batch-pos"
-            type="button"
-            onClick={onOpenBatchModal}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white shadow-2xs transition-colors cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Input Kas Computer</span>
-          </button>
-        </div>
+        <button
+          id="btn-open-batch-pos"
+          type="button"
+          onClick={onOpenBatchModal}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-2xs transition-colors cursor-pointer"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span>Input Kas Computer</span>
+        </button>
       </div>
 
       <RekapKpiCards

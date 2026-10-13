@@ -23,74 +23,71 @@ export const RekapKpiCards: React.FC<RekapKpiCardsProps> = ({
   branchPOSTotal,
   branchPOSTunaiTotal,
   branchPOSNonTunaiTotal,
-  branchPhysicalTotal,
   branchVarianceTotal
 }) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {/* Card 1: Total Fisik Tunai Cabang */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* Card 1: Total Fisik Tunai */}
+      <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-2xs">
         <div className="flex items-center justify-between text-slate-500 mb-1">
-          <span className="text-xs font-bold uppercase tracking-wider">1. Kas Fisik Tunai</span>
-          <div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg">
-            <Coins className="w-4 h-4" />
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Fisik Tunai</span>
+          <div className="p-1 bg-amber-50 text-amber-600 rounded-md">
+            <Coins className="w-3.5 h-3.5" />
           </div>
         </div>
-        <div className="text-lg font-black font-mono text-slate-900">
+        <div className="text-base sm:text-lg font-black font-mono text-slate-900">
           {formatCurrency(branchTunaiTotal)}
         </div>
-        <p className="text-[11px] text-slate-500 mt-1">
-          Total uang tunai fisik dari {filteredReportsCount} kasir
+        <p className="text-[10px] text-slate-400 mt-0.5">
+          {filteredReportsCount} kasir
         </p>
       </div>
 
-      {/* Card 2: Total Fisik Non-Tunai Cabang */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
+      {/* Card 2: Total Fisik Non-Tunai */}
+      <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-2xs">
         <div className="flex items-center justify-between text-slate-500 mb-1">
-          <span className="text-xs font-bold uppercase tracking-wider">2. Fisik Non-Tunai</span>
-          <div className="p-1.5 bg-teal-50 text-teal-600 rounded-lg">
-            <CreditCard className="w-4 h-4" />
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Fisik Non-Tunai</span>
+          <div className="p-1 bg-teal-50 text-teal-600 rounded-md">
+            <CreditCard className="w-3.5 h-3.5" />
           </div>
         </div>
-        <div className="text-lg font-black font-mono text-teal-700">
+        <div className="text-base sm:text-lg font-black font-mono text-teal-700">
           {formatCurrency(branchNonTunaiTotal)}
         </div>
-        <p className="text-[11px] text-slate-500 mt-1">
-          {nonCashTransactionsCount} transaksi EDC / QRIS / Transfer
+        <p className="text-[10px] text-slate-400 mt-0.5">
+          {nonCashTransactionsCount} transaksi
         </p>
       </div>
 
       {/* Card 3: Total Computer Cash POS */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
+      <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-2xs">
         <div className="flex items-center justify-between text-slate-500 mb-1">
-          <span className="text-xs font-bold uppercase tracking-wider">3. Computer Cash (POS)</span>
-          <div className="p-1.5 bg-purple-50 text-purple-600 rounded-lg">
-            <Calculator className="w-4 h-4" />
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Computer Cash</span>
+          <div className="p-1 bg-purple-50 text-purple-600 rounded-md">
+            <Calculator className="w-3.5 h-3.5" />
           </div>
         </div>
-        <div className="text-lg font-black font-mono text-purple-900">
-          {branchPOSTotal > 0 ? formatCurrency(branchPOSTotal) : 'Belum Lengkap'}
+        <div className="text-base sm:text-lg font-black font-mono text-purple-900">
+          {branchPOSTotal > 0 ? formatCurrency(branchPOSTotal) : 'Rp 0'}
         </div>
-        <p className="text-[11px] text-slate-500 mt-1">
-          (Tunai POS: {formatCurrency(branchPOSTunaiTotal)} | Non-Tunai: {formatCurrency(branchPOSNonTunaiTotal)})
+        <p className="text-[10px] text-slate-400 mt-0.5">
+          POS Tunai {formatCurrency(branchPOSTunaiTotal)}
         </p>
       </div>
 
       {/* Card 4: Total Variance / Selisih */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
+      <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-2xs">
         <div className="flex items-center justify-between text-slate-500 mb-1">
-          <span className="text-xs font-bold uppercase tracking-wider">4. Selisih Cabang</span>
-          <div className="p-1.5 bg-slate-100 text-slate-600 rounded-lg">
-            <ShieldCheck className="w-4 h-4" />
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Status Selisih</span>
+          <div className="p-1 bg-slate-100 text-slate-600 rounded-md">
+            <ShieldCheck className="w-3.5 h-3.5" />
           </div>
         </div>
         <div className="mt-1">
-          <VarianceBadge variance={branchVarianceTotal} size="md" />
+          <VarianceBadge variance={branchVarianceTotal} size="sm" />
         </div>
-        <p className="text-[11px] text-slate-500 mt-2">
-          Fisik Total ({formatCurrency(branchPhysicalTotal)}) vs POS Total
-        </p>
       </div>
     </div>
   );
 };
+

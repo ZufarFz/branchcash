@@ -95,6 +95,7 @@ export interface CashReport {
   cashierId: string;
   cashierName: string;
   status: ReportStatus;
+  submittedDate?: string;
   
   // Physical Cash Denominations
   denominations: CashDenominationItem[];
@@ -161,6 +162,7 @@ export interface BranchCashSession {
   assignedBy: string;
   assignedByName?: string;
   status: ReportStatus;
+  computerBeginningCash?: number;
   transferCount?: number;
   reportCount?: number;
   hasTransactions?: boolean;

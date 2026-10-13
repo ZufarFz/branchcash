@@ -61,6 +61,7 @@ export const cashSessionService = {
           assignedBy: row.assigned_by,
           assignedByName: usersMap.get(row.assigned_by) || 'Audit Cabang',
           status: row.status as ReportStatus,
+          computerBeginningCash: row.computer_beginning_cash != null ? Number(row.computer_beginning_cash) : 0,
           transferCount,
           reportCount,
           hasTransactions,
@@ -82,6 +83,7 @@ export const cashSessionService = {
     businessDate: string;
     bandarUserId: string;
     assignedBy: string;
+    computerBeginningCash?: number;
   }): Promise<BranchCashSession | null> {
     const supabase = getSupabaseClient();
     if (!supabase) return null;
@@ -95,6 +97,7 @@ export const cashSessionService = {
         bandar_user_id: params.bandarUserId,
         assigned_by: params.assignedBy,
         status: 'DRAFT',
+        computer_beginning_cash: params.computerBeginningCash ?? 0,
       };
 
       const { data, error } = await supabase
@@ -123,6 +126,7 @@ export const cashSessionService = {
         bandarUserId: data.bandar_user_id,
         assignedBy: data.assigned_by,
         status: data.status as ReportStatus,
+        computerBeginningCash: data.computer_beginning_cash != null ? Number(data.computer_beginning_cash) : 0,
         transferCount: 0,
         reportCount: 0,
         hasTransactions: false,
@@ -174,6 +178,35 @@ export const cashSessionService = {
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message || 'Gagal mengubah Kasir Bandar' };
+    }
+  },
+
+  /**
+   * Update beginning cash according to POS for an existing session
+   */
+  async updateSessionBeginningCash(
+    sessionId: string,
+    amount: number
+  ): Promise<{ success: boolean; error?: string }> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return { success: false, error: 'Database belum terkonfigurasi' };
+
+    try {
+      const { error } = await supabase
+        .from('branch_cash_sessions')
+        .update({
+          computer_beginning_cash: amount,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', sessionId);
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Gagal menyimpan saldo awal komputer' };
     }
   }
 };

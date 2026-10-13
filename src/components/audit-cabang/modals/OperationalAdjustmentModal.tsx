@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useApp } from '../../../context/AppContext';
 import { User, AdjustmentType } from '../../../types';
 import { Modal } from '../../common/Modal';
 import { supabaseService } from '../../../services/supabaseService';
-import { ArrowDownRight, ArrowUpRight, Plus, AlertCircle, Check } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, AlertCircle, Check } from 'lucide-react';
 
 interface OperationalAdjustmentModalProps {
   isOpen: boolean;
@@ -25,26 +26,50 @@ export const OperationalAdjustmentModal: React.FC<OperationalAdjustmentModalProp
   defaultCashierId,
   defaultDate,
 }) => {
-  const [cashierId, setCashierId] = useState<string>('');
+  const { cashSessions } = useApp();
   const [businessDate, setBusinessDate] = useState<string>(
     defaultDate || new Date().toISOString().split('T')[0]
   );
+  const [cashierId, setCashierId] = useState<string>('');
   const [type, setType] = useState<AdjustmentType>('EXPENSE');
   const [amountStr, setAmountStr] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Cari kasir bandar untuk tanggal bisnis yang dipilih
+  const bandarUserId = useMemo(() => {
+    const session = cashSessions.find(
+      (s) => s.businessDate === businessDate && (!branchId || s.branchId === branchId)
+    );
+    return session?.bandarUserId;
+  }, [cashSessions, businessDate, branchId]);
+
   useEffect(() => {
     if (isOpen) {
-      setCashierId(defaultCashierId || (cashiers.length > 0 ? cashiers[0].id : ''));
-      setBusinessDate(defaultDate || new Date().toISOString().split('T')[0]);
+      const initialDate = defaultDate || new Date().toISOString().split('T')[0];
+      setBusinessDate(initialDate);
+      const session = cashSessions.find(
+        (s) => s.businessDate === initialDate && (!branchId || s.branchId === branchId)
+      );
+      // Default ke kasir bandar hari itu, jika belum ditunjuk maka blank ('')
+      const targetCashier = defaultCashierId || session?.bandarUserId || '';
+      setCashierId(targetCashier);
       setType('EXPENSE');
       setAmountStr('');
       setNotes('');
       setErrorMsg(null);
     }
-  }, [isOpen, defaultCashierId, defaultDate, cashiers]);
+  }, [isOpen, defaultCashierId, defaultDate, branchId, cashSessions]);
+
+  const handleDateChange = (newDate: string) => {
+    setBusinessDate(newDate);
+    const session = cashSessions.find(
+      (s) => s.businessDate === newDate && (!branchId || s.branchId === branchId)
+    );
+    // Otomatis sinkronkan kasir ke bandar tanggal baru, atau blank jika belum ditunjuk
+    setCashierId(session?.bandarUserId || '');
+  };
 
   if (!isOpen) return null;
 
@@ -155,12 +180,15 @@ export const OperationalAdjustmentModal: React.FC<OperationalAdjustmentModalProp
             onChange={(e) => setCashierId(e.target.value)}
             className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-purple-500 text-slate-900 outline-none transition-all cursor-pointer font-medium"
           >
-            <option value="">Pilih Kasir</option>
-            {cashiers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} (@{c.username})
-              </option>
-            ))}
+            <option value="">-- Pilih Kasir --</option>
+            {cashiers.map((c) => {
+              const isBandar = c.id === bandarUserId;
+              return (
+                <option key={c.id} value={c.id}>
+                  {c.name}{isBandar ? ' (Bandar)' : ''}
+                </option>
+              );
+            })}
           </select>
         </div>
 
@@ -173,7 +201,7 @@ export const OperationalAdjustmentModal: React.FC<OperationalAdjustmentModalProp
             type="date"
             required
             value={businessDate}
-            onChange={(e) => setBusinessDate(e.target.value)}
+            onChange={(e) => handleDateChange(e.target.value)}
             className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-purple-500 text-slate-900 outline-none transition-all"
           />
         </div>
@@ -184,14 +212,24 @@ export const OperationalAdjustmentModal: React.FC<OperationalAdjustmentModalProp
             Nominal Transaksi (Rp) <span className="text-rose-500">*</span>
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-2.5 text-xs font-bold text-slate-400">Rp</span>
+            <span
+              className={`absolute left-3 top-2.5 text-xs font-bold select-none ${
+                type === 'EXPENSE' ? 'text-rose-600' : 'text-emerald-600'
+              }`}
+            >
+              {type === 'EXPENSE' ? '- Rp' : '+ Rp'}
+            </span>
             <input
               type="text"
               required
               value={amountStr}
               onChange={handleAmountChange}
               placeholder="0"
-              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-purple-500 text-slate-900 font-bold outline-none transition-all"
+              className={`w-full pl-12 pr-3 py-2 text-xs bg-slate-50 border rounded-xl focus:bg-white focus:ring-2 outline-none transition-all font-bold ${
+                type === 'EXPENSE'
+                  ? 'border-rose-200 text-rose-700 placeholder:text-rose-300 focus:border-rose-400 focus:ring-rose-200'
+                  : 'border-emerald-200 text-emerald-700 placeholder:text-emerald-300 focus:border-emerald-400 focus:ring-emerald-200'
+              }`}
             />
           </div>
         </div>

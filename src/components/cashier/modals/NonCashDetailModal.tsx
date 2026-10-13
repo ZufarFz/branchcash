@@ -88,7 +88,7 @@ export const NonCashDetailModal: React.FC<NonCashDetailModalProps> = ({
         <div className="px-4 py-3.5 bg-teal-600 text-white flex items-center justify-between shrink-0">
           <div className="min-w-0 pr-2">
             <h3 className="font-bold text-sm text-white truncate">
-              {activeDetail.bankCode} - {activeDetail.bankName}
+              {activeDetail.bankName}
             </h3>
             <p className="text-[11px] text-teal-100 font-medium truncate">
               Metode: <strong className="text-white">{activeDetail.methodName}</strong>

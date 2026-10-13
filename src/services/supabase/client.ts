@@ -17,8 +17,8 @@ export const generateUUID = (): string => {
 };
 
 // Lightweight caches to accelerate rapid sequential non-cash transaction saves
-export const cachedBanksListRef: { list: Array<{ id: string; code: string; name: string }> | null } = { list: null };
-export const cachedMethodsListRef: { list: Array<{ id: string; code: string; name: string }> | null } = { list: null };
+export const cachedBanksListRef: { list: Array<{ id: string; name: string; code?: string }> | null } = { list: null };
+export const cachedMethodsListRef: { list: Array<{ id: string; name: string; code?: string }> | null } = { list: null };
 export const verifiedReportIdMap = new Map<string, string>(); // clientReportId -> dbReportId
 export const verifiedUserBranchMap = new Map<string, string>(); // cashierId -> branchId
 

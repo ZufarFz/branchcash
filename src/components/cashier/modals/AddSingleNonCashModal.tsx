@@ -62,11 +62,13 @@ export const AddSingleNonCashModal: React.FC<AddSingleNonCashModalProps> = ({
                 onChange={(e) => setNcBank(e.target.value)}
                 className="w-full text-xs py-2 px-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
               >
-                {banks.map((b) => (
-                  <option key={b.id} value={b.code}>
-                    {b.code} - {b.name}
-                  </option>
-                ))}
+                {banks
+                  .filter((b) => b.isActive !== false)
+                  .map((b) => (
+                    <option key={b.id} value={b.name}>
+                      {b.name}
+                    </option>
+                  ))}
               </select>
             </div>
 
@@ -80,11 +82,13 @@ export const AddSingleNonCashModal: React.FC<AddSingleNonCashModalProps> = ({
                 onChange={(e) => setNcMethod(e.target.value)}
                 className="w-full text-xs py-2 px-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
               >
-                {paymentMethods.map((m) => (
-                  <option key={m.id} value={m.code}>
-                    {m.name}
-                  </option>
-                ))}
+                {paymentMethods
+                  .filter((m) => m.isActive !== false)
+                  .map((m) => (
+                    <option key={m.id} value={m.name}>
+                      {m.name}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>

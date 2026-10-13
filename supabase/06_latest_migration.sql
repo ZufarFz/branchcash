@@ -1234,5 +1234,82 @@ ALTER TABLE public.cash_reports
 -- 6. Tabel cashier_operational_adjustments: Hapus receipt_url
 ALTER TABLE public.cashier_operational_adjustments DROP COLUMN IF EXISTS receipt_url;
 
+-- ==============================================================================
+-- UPDATE #20 - 2026-10-13: Saldo Awal Bandar Menurut Komputer (computer_beginning_cash)
+-- DESKRIPSI: Menambahkan kolom computer_beginning_cash pada tabel branch_cash_sessions
+--            untuk mencatat saldo awal modal kasir bandar harian menurut sistem POS/Komputer.
+-- ==============================================================================
+
+ALTER TABLE public.branch_cash_sessions
+  ADD COLUMN IF NOT EXISTS computer_beginning_cash NUMERIC(15, 2) DEFAULT 0;
+
+-- ==============================================================================
+-- UPDATE #21 - 2026-10-13: Penyesuaian Kolom total_physical Murni Kas Fisik Tunai
+-- DESKRIPSI: 1. Memperbarui fungsi trigger recalc_report_totals() agar kolom total_physical
+--               pada tabel cash_reports murni menyimpan total kas fisik uang tunai (kertas + koin),
+--               bukan penjumlahan tunai + non-tunai.
+--            2. Menyinkronkan data lama pada cash_reports agar total_physical sesuai
+--               dengan SUM(subtotal) dari tabel cash_report_denominations (Rp 0 jika tunai kosong).
+-- ==============================================================================
+
+CREATE OR REPLACE FUNCTION public.recalc_report_totals()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_report_id UUID;
+  v_physical NUMERIC(15, 2);
+  v_non_cash NUMERIC(15, 2);
+BEGIN
+  v_report_id := COALESCE(NEW.report_id, OLD.report_id);
+
+  IF TG_TABLE_NAME = 'cash_report_denominations' THEN
+    SELECT COALESCE(SUM(subtotal), 0)
+    INTO v_physical
+    FROM public.cash_report_denominations
+    WHERE report_id = v_report_id;
+
+    UPDATE public.cash_reports
+    SET 
+      total_physical = v_physical,
+      updated_at = NOW()
+    WHERE id = v_report_id;
+
+  ELSIF TG_TABLE_NAME = 'non_cash_transactions' THEN
+    SELECT COALESCE(SUM(amount), 0)
+    INTO v_non_cash
+    FROM public.non_cash_transactions
+    WHERE report_id = v_report_id;
+
+    UPDATE public.cash_reports
+    SET 
+      total_non_cash = v_non_cash,
+      updated_at = NOW()
+    WHERE id = v_report_id;
+  END IF;
+
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Pasang ulang triggers untuk memastikan mengarah ke fungsi terbaru
+DROP TRIGGER IF EXISTS trigger_recalc_denoms ON public.cash_report_denominations;
+CREATE TRIGGER trigger_recalc_denoms
+  AFTER INSERT OR UPDATE OR DELETE ON public.cash_report_denominations
+  FOR EACH ROW EXECUTE FUNCTION public.recalc_report_totals();
+
+DROP TRIGGER IF EXISTS trigger_recalc_non_cash ON public.non_cash_transactions;
+CREATE TRIGGER trigger_recalc_non_cash
+  AFTER INSERT OR UPDATE OR DELETE ON public.non_cash_transactions
+  FOR EACH ROW EXECUTE FUNCTION public.recalc_report_totals();
+
+-- Sinkronisasi baris data yang ada saat ini: reset total_physical agar murni kas tunai
+UPDATE public.cash_reports cr
+SET total_physical = COALESCE((
+  SELECT SUM(subtotal)
+  FROM public.cash_report_denominations crd
+  WHERE crd.report_id = cr.id
+), 0);
+
+
+
 
 

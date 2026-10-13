@@ -6,6 +6,7 @@ export const cashTransferService = {
   fetchCashSessions: cashSessionService.fetchCashSessions.bind(cashSessionService),
   openCashSession: cashSessionService.openCashSession.bind(cashSessionService),
   updateCashSessionBandar: cashSessionService.updateCashSessionBandar.bind(cashSessionService),
+  updateSessionBeginningCash: cashSessionService.updateSessionBeginningCash.bind(cashSessionService),
 
   // Cash Transfers
   fetchCashTransfers: cashTransferPairService.fetchCashTransfers.bind(cashTransferPairService),

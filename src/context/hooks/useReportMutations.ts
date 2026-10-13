@@ -8,7 +8,6 @@ import {
   DenomConfig, 
   BranchCashSession 
 } from '../../types';
-import { MASTER_DENOMS } from '../../constants/masterData';
 import { supabaseService } from '../../services/supabaseService';
 import { generateUUID } from '../types';
 
@@ -62,7 +61,7 @@ export const useReportMutations = (
 
     const reportNumber = `CR-${yyMMdd}-${branchCodeClean}-${cashierUniq}`;
 
-    const defaultDenoms: CashDenominationItem[] = (masterDenoms.length > 0 ? masterDenoms : MASTER_DENOMS).map(d => ({
+    const defaultDenoms: CashDenominationItem[] = (masterDenoms || []).map(d => ({
       denomId: d.id,
       denomCode: d.code,
       denomLabel: d.label,

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../../context/AppContext';
 import { CashReport, DenomConfig, DenomBreakdownItem } from '../../../types';
-import { MASTER_DENOMS } from '../../../constants/masterData';
 import { formatCurrency } from '../../../utils/formatters';
 import { CashierCellPopoverData } from '../modals/CashierCellPopover';
 import { DeleteBreakdownTarget } from '../modals/DeleteBreakdownModal';
@@ -15,9 +14,9 @@ export const useCashierDenominations = (
   const isCashierRole = currentUser.role === 'KASIR';
 
   const activeMasterList = useMemo<DenomConfig[]>(() => {
-    return (masterDenoms && masterDenoms.length > 0)
+    return Array.isArray(masterDenoms)
       ? [...masterDenoms].sort((a, b) => a.sortOrder - b.sortOrder)
-      : [...MASTER_DENOMS].sort((a, b) => a.sortOrder - b.sortOrder);
+      : [];
   }, [masterDenoms]);
 
   const [activeBreakdownMaster, setActiveBreakdownMaster] = useState<DenomConfig | null>(null);

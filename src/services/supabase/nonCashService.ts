@@ -122,7 +122,7 @@ export const nonCashService = {
             branch_id: validBranchId,
             cashier_id: validCashierId,
             status: reportObj?.status || 'DRAFT',
-            total_physical: reportObj?.totalPhysical || tx.amount,
+            total_physical: reportObj?.totalCash || 0,
             total_non_cash: reportObj?.totalNonCash || tx.amount,
             notes: reportObj?.notes || null,
           });
@@ -145,11 +145,11 @@ export const nonCashService = {
           cachedBanksListRef.list = allBanks || [];
         }
         if (cachedBanksListRef.list.length > 0) {
-          const match = cachedBanksListRef.list.find(b => 
-            b.name.toLowerCase() === tx.bank.toLowerCase() || 
-            b.name.toLowerCase().includes(tx.bank.toLowerCase()) ||
-            tx.bank.toLowerCase().includes(b.name.toLowerCase())
-          );
+          const targetBank = (tx.bank || '').toLowerCase().trim();
+          const match = cachedBanksListRef.list.find(b => {
+            const bName = (b.name || '').toLowerCase().trim();
+            return bName === targetBank || bName.includes(targetBank) || targetBank.includes(bName);
+          });
           validBankId = match ? match.id : cachedBanksListRef.list[0].id;
         }
       }
@@ -164,11 +164,11 @@ export const nonCashService = {
           cachedMethodsListRef.list = allMethods || [];
         }
         if (cachedMethodsListRef.list.length > 0) {
-          const match = cachedMethodsListRef.list.find(m => 
-            m.name.toLowerCase() === tx.paymentMethod.toLowerCase() || 
-            m.name.toLowerCase().includes(tx.paymentMethod.toLowerCase()) ||
-            tx.paymentMethod.toLowerCase().includes(m.name.toLowerCase())
-          );
+          const targetMethod = (tx.paymentMethod || '').toLowerCase().trim();
+          const match = cachedMethodsListRef.list.find(m => {
+            const mName = (m.name || '').toLowerCase().trim();
+            return mName === targetMethod || mName.includes(targetMethod) || targetMethod.includes(mName);
+          });
           validMethodId = match ? match.id : cachedMethodsListRef.list[0].id;
         }
       }
@@ -197,7 +197,6 @@ export const nonCashService = {
       if (reportObj) {
         await supabase.from('cash_reports').update({
           total_non_cash: reportObj.totalNonCash,
-          total_physical: reportObj.totalPhysical,
         }).eq('id', targetReportId);
       }
 

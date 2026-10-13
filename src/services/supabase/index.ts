@@ -71,6 +71,7 @@ export const supabaseService = {
   fetchCashSessions: cashTransferService.fetchCashSessions.bind(cashTransferService),
   openCashSession: cashTransferService.openCashSession.bind(cashTransferService),
   updateCashSessionBandar: cashTransferService.updateCashSessionBandar.bind(cashTransferService),
+  updateSessionBeginningCash: cashTransferService.updateSessionBeginningCash.bind(cashTransferService),
   fetchCashTransfers: cashTransferService.fetchCashTransfers.bind(cashTransferService),
   recordCashTransferPair: cashTransferService.recordCashTransferPair.bind(cashTransferService),
   confirmCashTransferPair: cashTransferService.confirmCashTransferPair.bind(cashTransferService),

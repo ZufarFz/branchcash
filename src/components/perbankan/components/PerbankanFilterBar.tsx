@@ -47,11 +47,13 @@ export const PerbankanFilterBar: React.FC<PerbankanFilterBarProps> = ({
             className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer"
           >
             <option value="ALL">Semua Bank</option>
-            {banks.map((b) => (
-              <option key={b.id} value={b.code}>
-                {b.code} ({b.name})
-              </option>
-            ))}
+            {banks
+              .filter((b) => b.isActive !== false)
+              .map((b) => (
+                <option key={b.id} value={b.name}>
+                  {b.name}
+                </option>
+              ))}
           </select>
         </div>
 
@@ -65,11 +67,13 @@ export const PerbankanFilterBar: React.FC<PerbankanFilterBarProps> = ({
             className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer"
           >
             <option value="ALL">Semua Metode</option>
-            {paymentMethods.map((m) => (
-              <option key={m.id} value={m.code}>
-                {m.name}
-              </option>
-            ))}
+            {paymentMethods
+              .filter((m) => m.isActive !== false)
+              .map((m) => (
+                <option key={m.id} value={m.name}>
+                  {m.name}
+                </option>
+              ))}
           </select>
         </div>
 

@@ -29,7 +29,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({ initialSubTab = 
   // Metrics for overview cards
   const activeBanksCount = banks.filter((b) => b.isActive).length;
   const activeMethodsCount = paymentMethods.filter((p) => p.isActive).length;
-  const activeBranchesCount = branches.filter((b) => b.isActive).length;
+  const activeBranchesCount = branches.filter((b) => b.status === 'ACTIVE').length;
 
   const tabConfigs = [
     {

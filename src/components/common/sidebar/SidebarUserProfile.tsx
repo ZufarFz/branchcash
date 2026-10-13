@@ -17,21 +17,21 @@ export const SidebarUserProfile: React.FC<SidebarUserProfileProps> = ({
   onOpenLogoutModal,
 }) => {
   return (
-    <div className="p-3 border-t border-slate-800 bg-slate-900/90 shrink-0">
+    <div className="p-3 border-t border-slate-200/90 bg-slate-50/70 shrink-0">
       <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} gap-2`}>
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-full bg-linear-to-tr from-indigo-500 to-indigo-600 text-white font-bold flex items-center justify-center shrink-0 shadow-2xs border border-indigo-400/30 text-xs">
+          <div className="w-8 h-8 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center shrink-0 shadow-2xs text-xs select-none">
             {(currentUser?.name || 'User').slice(0, 2).toUpperCase()}
           </div>
           {!isCollapsed && (
             <div className="min-w-0 leading-tight">
-              <span className="font-semibold text-slate-100 text-xs truncate block" title={currentUser?.name || 'Pengguna'}>
+              <span className="font-bold text-slate-800 text-xs truncate block" title={currentUser?.name || 'Pengguna'}>
                 {currentUser?.name || 'Pengguna'}
               </span>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <RoleBadge role={currentUser.role} size="sm" />
                 {currentBranch && (
-                  <span className="text-[10px] text-slate-400 font-mono truncate" title={currentBranch.name}>
+                  <span className="text-[10px] text-slate-500 font-mono truncate" title={currentBranch.name}>
                     • {currentBranch.code}
                   </span>
                 )}
@@ -45,7 +45,7 @@ export const SidebarUserProfile: React.FC<SidebarUserProfileProps> = ({
           type="button"
           onClick={onOpenLogoutModal}
           title="Keluar Sesi (Logout)"
-          className={`p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 transition-all cursor-pointer ${
+          className={`p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer ${
             isCollapsed ? 'mt-2 w-8 h-8 flex items-center justify-center' : ''
           }`}
         >

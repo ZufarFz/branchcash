@@ -16,14 +16,11 @@ import {
 } from 'lucide-react';
 
 export const KasOperasionalTab: React.FC = () => {
-  const { currentUser, allUsers, refreshFromSupabase, isSyncing } = useApp();
+  const { currentUser, allUsers, refreshFromSupabase, isSyncing, selectedDate } = useApp();
 
   const [adjustments, setAdjustments] = useState<CashierOperationalAdjustment[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  );
   const [filterCashierId, setFilterCashierId] = useState<string>('ALL');
 
   const branchCashiers = useMemo(() => {
@@ -79,88 +76,72 @@ export const KasOperasionalTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
-      {/* Top Bar: Action & Filter Controls */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
-            <Calendar className="w-4 h-4 text-purple-600" />
-            <span>Tanggal:</span>
-          </div>
-          <input
-            type="date"
-            value={selectedDate === 'ALL' ? '' : selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value || 'ALL')}
-            className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium outline-none focus:ring-2 focus:ring-purple-500"
-          />
-
+    <div className="space-y-4 animate-in fade-in duration-200">
+      {/* Top Bar Ringkas */}
+      <div className="bg-white rounded-xl border border-slate-200 px-4 py-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-2.5">
+        <div className="flex items-center gap-2">
           <select
             value={filterCashierId}
             onChange={(e) => setFilterCashierId(e.target.value)}
-            className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-medium outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+            className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
           >
             <option value="ALL">Semua Kasir ({branchCashiers.length})</option>
             {branchCashiers.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
-        </div>
 
-        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={loadAdjustments}
             disabled={isLoading || isSyncing}
-            className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+            className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
             title="Muat Ulang Data"
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-purple-600' : ''}`} />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 shadow-xs transition-colors cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Input Kas Operasional</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-purple-600' : ''}`} />
           </button>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setIsModalOpen(true)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 shadow-2xs transition-colors cursor-pointer"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span>Input Kas Operasional</span>
+        </button>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+      {/* KPI Cards Ringkas */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-2xs">
           <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-semibold">Total Pengeluaran (Non-POS)</span>
-            <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
-              <ArrowDownRight className="w-4 h-4" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Total Pengeluaran</span>
+            <div className="w-6 h-6 rounded-md bg-rose-50 text-rose-600 flex items-center justify-center">
+              <ArrowDownRight className="w-3.5 h-3.5" />
             </div>
           </div>
-          <p className="text-xl font-bold text-rose-600">{formatCurrency(totalExpense)}</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">Parkir, konsumsi, biaya mendadak</p>
+          <p className="text-base sm:text-lg font-black font-mono text-rose-600">{formatCurrency(totalExpense)}</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+        <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-2xs">
           <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-semibold">Total Pemasukan (Non-POS)</span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <ArrowUpRight className="w-4 h-4" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Total Pemasukan</span>
+            <div className="w-6 h-6 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <ArrowUpRight className="w-3.5 h-3.5" />
             </div>
           </div>
-          <p className="text-xl font-bold text-emerald-600">{formatCurrency(totalIncome)}</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">Pengembalian sisa, titipan non-POS</p>
+          <p className="text-base sm:text-lg font-black font-mono text-emerald-600">{formatCurrency(totalIncome)}</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+        <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-2xs">
           <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-semibold">Pengeluaran Bersih</span>
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-              <Receipt className="w-4 h-4" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Pengeluaran Bersih</span>
+            <div className="w-6 h-6 rounded-md bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <Receipt className="w-3.5 h-3.5" />
             </div>
           </div>
-          <p className="text-xl font-bold text-slate-900">{formatCurrency(totalExpense - totalIncome)}</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">Pengurang kas yang disetor kasir</p>
+          <p className="text-base sm:text-lg font-black font-mono text-slate-900">{formatCurrency(totalExpense - totalIncome)}</p>
         </div>
       </div>
 
@@ -250,7 +231,6 @@ export const KasOperasionalTab: React.FC = () => {
         cashiers={branchCashiers}
         currentUserId={currentUser.id}
         defaultDate={selectedDate === 'ALL' ? undefined : selectedDate}
-        defaultCashierId={filterCashierId === 'ALL' ? undefined : filterCashierId}
         onSuccess={async () => {
           await loadAdjustments();
           await refreshFromSupabase();
