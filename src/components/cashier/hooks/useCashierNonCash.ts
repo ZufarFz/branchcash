@@ -11,24 +11,26 @@ export const useCashierNonCash = (
     currentUser, 
     banks, 
     paymentMethods, 
+    cashSessions,
+    selectedDate,
     addNonCashTransaction, 
     deleteNonCashTransaction, 
     updateNonCashTransaction 
   } = useApp();
 
-  const isCashierRole = currentUser.role === 'KASIR';
+  const isCashierRole = currentUser.role === 'KASIR' || (currentUser.role === 'SPV' && (cashSessions || []).some(s => s.actingCashierUserId === currentUser.id && s.businessDate === selectedDate));
 
   // Single Non-Cash Modal
   const [showAddNonCashModal, setShowAddNonCashModal] = useState<boolean>(false);
-  const [ncBank, setNcBank] = useState<string>(banks[0]?.name || '');
-  const [ncMethod, setNcMethod] = useState<string>(paymentMethods[0]?.name || '');
+  const [ncBank, setNcBank] = useState<string>(() => banks.find((b) => b.isActive !== false)?.name || '');
+  const [ncMethod, setNcMethod] = useState<string>(() => paymentMethods.find((m) => m.isActive !== false)?.name || '');
   const [ncAmount, setNcAmount] = useState<string>('');
   const [isSubmittingNc, setIsSubmittingNc] = useState<boolean>(false);
 
   // Batch Non-Cash Modal
   const [showBatchNonCashModal, setShowBatchNonCashModal] = useState<boolean>(false);
-  const [batchBank, setBatchBank] = useState<string>(banks[0]?.name || '');
-  const [batchMethod, setBatchMethod] = useState<string>(paymentMethods[0]?.name || '');
+  const [batchBank, setBatchBank] = useState<string>(() => banks.find((b) => b.isActive !== false)?.name || '');
+  const [batchMethod, setBatchMethod] = useState<string>(() => paymentMethods.find((m) => m.isActive !== false)?.name || '');
   const [batchAmountInput, setBatchAmountInput] = useState<string>('');
   const [isSubmittingBatch, setIsSubmittingBatch] = useState<boolean>(false);
   const [savingTxIds, setSavingTxIds] = useState<string[]>([]);
@@ -36,20 +38,22 @@ export const useCashierNonCash = (
   const batchInputRef = useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
-    if (banks.length > 0 && (!ncBank || !banks.some((b) => b.name === ncBank))) {
-      setNcBank(banks[0].name);
+    const firstActive = banks.find((b) => b.isActive !== false)?.name || '';
+    if (firstActive && (!ncBank || !banks.some((b) => b.name === ncBank && b.isActive !== false))) {
+      setNcBank(firstActive);
     }
-    if (banks.length > 0 && (!batchBank || !banks.some((b) => b.name === batchBank))) {
-      setBatchBank(banks[0].name);
+    if (firstActive && (!batchBank || !banks.some((b) => b.name === batchBank && b.isActive !== false))) {
+      setBatchBank(firstActive);
     }
   }, [banks, ncBank, batchBank]);
 
   React.useEffect(() => {
-    if (paymentMethods.length > 0 && (!ncMethod || !paymentMethods.some((m) => m.name === ncMethod))) {
-      setNcMethod(paymentMethods[0].name);
+    const firstActive = paymentMethods.find((m) => m.isActive !== false)?.name || '';
+    if (firstActive && (!ncMethod || !paymentMethods.some((m) => m.name === ncMethod && m.isActive !== false))) {
+      setNcMethod(firstActive);
     }
-    if (paymentMethods.length > 0 && (!batchMethod || !paymentMethods.some((m) => m.name === batchMethod))) {
-      setBatchMethod(paymentMethods[0].name);
+    if (firstActive && (!batchMethod || !paymentMethods.some((m) => m.name === batchMethod && m.isActive !== false))) {
+      setBatchMethod(firstActive);
     }
   }, [paymentMethods, ncMethod, batchMethod]);
 
@@ -57,7 +61,6 @@ export const useCashierNonCash = (
   const [tableSortField, setTableSortField] = useState<'no' | 'amount' | 'time'>('no');
   const [tableSortDir, setTableSortDir] = useState<'asc' | 'desc'>('asc');
   const [actMode, setActMode] = useState<'delete' | 'edit'>('delete');
-
   // Detail Modal
   const [selectedBankMethodDetail, setSelectedBankMethodDetail] = useState<{
     bankCode: string;
@@ -88,7 +91,6 @@ export const useCashierNonCash = (
       alert('Masukkan nominal transaksi non-tunai yang valid.');
       return;
     }
-
     setIsSubmittingNc(true);
     try {
       const result = await addNonCashTransaction(report.id, {
@@ -97,7 +99,6 @@ export const useCashierNonCash = (
         amount: numAmount,
         cashierName: currentUser.name,
       });
-
       if (result.success) {
         setNcAmount('');
         setShowAddNonCashModal(false);

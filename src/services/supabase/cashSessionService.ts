@@ -58,8 +58,13 @@ export const cashSessionService = {
           businessDate: row.business_date,
           bandarUserId: row.bandar_user_id,
           bandarUserName: usersMap.get(row.bandar_user_id) || 'Kasir Bandar',
+          bandarRole: row.bandar_role || 'KASIR',
           assignedBy: row.assigned_by,
           assignedByName: usersMap.get(row.assigned_by) || 'Audit Cabang',
+          assignedByRole: row.assigned_by_role || 'AUDIT_CABANG',
+          actingCashierUserId: row.acting_cashier_user_id || null,
+          actingCashierUserName: row.acting_cashier_user_id ? usersMap.get(row.acting_cashier_user_id) : undefined,
+          actingCashierRole: row.acting_cashier_role || null,
           status: row.status as ReportStatus,
           computerBeginningCash: row.computer_beginning_cash != null ? Number(row.computer_beginning_cash) : 0,
           transferCount,
@@ -83,6 +88,7 @@ export const cashSessionService = {
     businessDate: string;
     bandarUserId: string;
     assignedBy: string;
+    actingCashierUserId?: string | null;
     computerBeginningCash?: number;
   }): Promise<BranchCashSession | null> {
     const supabase = getSupabaseClient();
@@ -90,12 +96,13 @@ export const cashSessionService = {
 
     try {
       const sessionId = generateUUID();
-      const payload = {
+      const payload: any = {
         id: sessionId,
         branch_id: params.branchId,
         business_date: params.businessDate,
         bandar_user_id: params.bandarUserId,
         assigned_by: params.assignedBy,
+        acting_cashier_user_id: params.actingCashierUserId || null,
         status: 'DRAFT',
         computer_beginning_cash: params.computerBeginningCash ?? 0,
       };
@@ -124,7 +131,11 @@ export const cashSessionService = {
         branchId: data.branch_id,
         businessDate: data.business_date,
         bandarUserId: data.bandar_user_id,
+        bandarRole: data.bandar_role || 'KASIR',
         assignedBy: data.assigned_by,
+        assignedByRole: data.assigned_by_role || 'AUDIT_CABANG',
+        actingCashierUserId: data.acting_cashier_user_id || null,
+        actingCashierRole: data.acting_cashier_role || null,
         status: data.status as ReportStatus,
         computerBeginningCash: data.computer_beginning_cash != null ? Number(data.computer_beginning_cash) : 0,
         transferCount: 0,
@@ -140,35 +151,49 @@ export const cashSessionService = {
   },
 
   /**
-   * Update Bandar Cashier for an existing session
+   * Update Bandar Cashier and/or Acting Cashier for an existing session
    */
   async updateCashSessionBandar(params: {
     sessionId: string;
     newBandarUserId: string;
+    actingCashierUserId?: string | null;
   }): Promise<{ success: boolean; error?: string }> {
     const supabase = getSupabaseClient();
     if (!supabase) return { success: false, error: 'Database belum terkonfigurasi' };
 
     try {
-      const { data: transfers } = await supabase
-        .from('cashier_cash_transfers')
-        .select('id')
-        .eq('cash_session_id', params.sessionId)
-        .limit(1);
+      const { data: currSession } = await supabase
+        .from('branch_cash_sessions')
+        .select('bandar_user_id')
+        .eq('id', params.sessionId)
+        .single();
 
-      if (transfers && transfers.length > 0) {
-        return {
-          success: false,
-          error: 'Kasir Bandar tidak dapat diubah karena sudah ada transaksi mutasi kas/modal pada sesi ini.',
-        };
+      if (currSession && currSession.bandar_user_id !== params.newBandarUserId) {
+        const { data: transfers } = await supabase
+          .from('cashier_cash_transfers')
+          .select('id')
+          .eq('cash_session_id', params.sessionId)
+          .limit(1);
+
+        if (transfers && transfers.length > 0) {
+          return {
+            success: false,
+            error: 'Kasir Bandar tidak dapat diubah karena sudah ada transaksi mutasi kas/modal pada sesi ini.',
+          };
+        }
+      }
+
+      const updateData: any = {
+        bandar_user_id: params.newBandarUserId,
+        updated_at: new Date().toISOString(),
+      };
+      if (params.actingCashierUserId !== undefined) {
+        updateData.acting_cashier_user_id = params.actingCashierUserId || null;
       }
 
       const { error } = await supabase
         .from('branch_cash_sessions')
-        .update({
-          bandar_user_id: params.newBandarUserId,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', params.sessionId);
 
       if (error) {

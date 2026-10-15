@@ -8,7 +8,7 @@ export const authUserAdminService = {
   async signUpWithProfile(params: {
     name: string;
     username?: string;
-    email: string;
+    email?: string;
     password: string;
     role: UserRole;
     branchId?: string;
@@ -49,8 +49,10 @@ export const authUserAdminService = {
         userMeta.branch_id = validBranchId;
       }
 
+      const emailToUse = (params.email || `${cleanUsername}@branchcash.internal`).trim().toLowerCase();
+
       const { data, error } = await supabase.auth.signUp({
-        email: params.email.trim(),
+        email: emailToUse,
         password: params.password,
         options: { data: userMeta }
       });
@@ -58,7 +60,7 @@ export const authUserAdminService = {
       if (error) {
         let msg = error.message;
         if (msg.includes('User already registered')) {
-          msg = 'Email ini sudah terdaftar. Silakan gunakan menu Masuk.';
+          msg = `Username "${cleanUsername}" sudah terdaftar. Silakan gunakan menu Masuk.`;
         } else if (msg.includes('Password should be at least')) {
           msg = 'Password minimal harus terdiri dari 6 karakter.';
         } else if (msg.includes('Database error saving new user')) {

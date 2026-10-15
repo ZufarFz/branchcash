@@ -15,7 +15,11 @@ CREATE TABLE IF NOT EXISTS public.branch_cash_sessions (
   branch_id UUID NOT NULL REFERENCES public.branches(id) ON DELETE RESTRICT,
   business_date DATE NOT NULL,
   bandar_user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
+  bandar_role VARCHAR(50) DEFAULT 'KASIR',
   assigned_by UUID NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
+  assigned_by_role VARCHAR(50) DEFAULT 'AUDIT_CABANG',
+  acting_cashier_user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  acting_cashier_role VARCHAR(50) DEFAULT NULL,
   status report_status NOT NULL DEFAULT 'DRAFT',
   computer_beginning_cash NUMERIC(15, 2) DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -33,6 +37,7 @@ CREATE TABLE IF NOT EXISTS public.cash_reports (
   business_date DATE NOT NULL,
   branch_id UUID NOT NULL REFERENCES public.branches(id) ON DELETE RESTRICT,
   cashier_id UUID NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
+  cashier_role VARCHAR(50) DEFAULT 'KASIR',
   status report_status NOT NULL DEFAULT 'DRAFT',
   
   -- Kas Fisik Kasir (Khusus Uang Tunai Kertas & Koin)
@@ -44,6 +49,7 @@ CREATE TABLE IF NOT EXISTS public.cash_reports (
   computer_cash_non_tunai NUMERIC(15, 2) DEFAULT NULL,
   computer_cash_total NUMERIC(15, 2) DEFAULT NULL,
   computer_cash_updated_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  computer_cash_role VARCHAR(50) DEFAULT NULL,
   computer_cash_updated_at TIMESTAMPTZ DEFAULT NULL,
 
   -- Penyesuaian Operasional Kasir Non-POS (Diinput khusus oleh Audit Cabang)
@@ -53,6 +59,7 @@ CREATE TABLE IF NOT EXISTS public.cash_reports (
   -- Verifikasi Final / Keputusan Audit (APPROVED / REJECTED)
   verified_at TIMESTAMPTZ DEFAULT NULL,
   verified_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  verified_role VARCHAR(50) DEFAULT NULL,
   notes TEXT DEFAULT NULL,
 
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -95,7 +102,9 @@ CREATE TABLE IF NOT EXISTS public.cashier_cash_transfers (
   branch_id UUID NOT NULL REFERENCES public.branches(id) ON DELETE RESTRICT,
   business_date DATE NOT NULL,
   user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
+  user_role VARCHAR(50) DEFAULT 'KASIR',
   partner_user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
+  partner_role VARCHAR(50) DEFAULT 'KASIR',
   transfer_type VARCHAR(20) NOT NULL CHECK (transfer_type IN ('MODAL', 'SETOR')),
   direction VARCHAR(5) NOT NULL CHECK (direction IN ('IN', 'OUT')),
   amount NUMERIC(15, 2) NOT NULL,
@@ -103,6 +112,7 @@ CREATE TABLE IF NOT EXISTS public.cashier_cash_transfers (
   status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'CONFIRMED', 'REJECTED')),
   confirmed_at TIMESTAMPTZ DEFAULT NULL,
   confirmed_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  confirmed_role VARCHAR(50) DEFAULT NULL,
   notes TEXT DEFAULT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -113,11 +123,13 @@ CREATE TABLE IF NOT EXISTS public.cashier_operational_adjustments (
   report_id UUID REFERENCES public.cash_reports(id) ON DELETE CASCADE,
   branch_id UUID NOT NULL REFERENCES public.branches(id) ON DELETE RESTRICT,
   cashier_id UUID NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
+  cashier_role VARCHAR(50) DEFAULT 'KASIR',
   business_date DATE NOT NULL,
   type VARCHAR(10) NOT NULL CHECK (type IN ('EXPENSE', 'INCOME')),
   amount NUMERIC(15, 2) NOT NULL CHECK (amount > 0),
   notes TEXT NOT NULL,
   created_by UUID NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
+  created_by_role VARCHAR(50) DEFAULT 'AUDIT_CABANG',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -189,7 +201,7 @@ CREATE POLICY "cash_reports_insert_policy" ON public.cash_reports
   FOR INSERT TO authenticated
   WITH CHECK (
     (
-      public.current_user_role() = 'KASIR'
+      (public.current_user_role() = 'KASIR' OR public.is_acting_cashier(branch_id, business_date, auth.uid()))
       AND branch_id = public.current_user_branch_id()
       AND cashier_id = auth.uid()
       AND status IN ('DRAFT', 'SUBMITTED')
@@ -204,7 +216,7 @@ CREATE POLICY "cash_reports_update_policy" ON public.cash_reports
   USING (
     public.current_user_role() IN ('AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN')
     OR (
-      public.current_user_role() = 'KASIR'
+      (public.current_user_role() = 'KASIR' OR public.is_acting_cashier(branch_id, business_date, auth.uid()))
       AND cashier_id = auth.uid()
       AND status IN ('DRAFT', 'SUBMITTED', 'REJECTED')
     )
@@ -220,7 +232,7 @@ CREATE POLICY "cash_reports_update_policy" ON public.cash_reports
   WITH CHECK (
     public.current_user_role() IN ('AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN')
     OR (
-      public.current_user_role() = 'KASIR'
+      (public.current_user_role() = 'KASIR' OR public.is_acting_cashier(branch_id, business_date, auth.uid()))
       AND cashier_id = auth.uid()
       AND status IN ('DRAFT', 'SUBMITTED')
     )
@@ -238,7 +250,11 @@ DROP POLICY IF EXISTS "cash_reports_delete_policy" ON public.cash_reports;
 CREATE POLICY "cash_reports_delete_policy" ON public.cash_reports
   FOR DELETE TO authenticated
   USING (
-    (public.current_user_role() = 'KASIR' AND cashier_id = auth.uid() AND status = 'DRAFT')
+    (
+      (public.current_user_role() = 'KASIR' OR public.is_acting_cashier(branch_id, business_date, auth.uid())) 
+      AND cashier_id = auth.uid() 
+      AND status = 'DRAFT'
+    )
     OR public.current_user_role() IN ('AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN')
   );
 
@@ -272,9 +288,9 @@ CREATE POLICY "denoms_modify_policy" ON public.cash_report_denominations
       SELECT 1 FROM public.cash_reports r
       WHERE r.id = cash_report_denominations.report_id
       AND (
-        public.current_user_role() = 'AUDIT_PUSAT'
+        public.current_user_role() IN ('AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN')
         OR (
-          public.current_user_role() = 'KASIR'
+          (public.current_user_role() = 'KASIR' OR public.is_acting_cashier(r.branch_id, r.business_date, auth.uid()))
           AND r.cashier_id = auth.uid()
           AND r.status IN ('DRAFT', 'SUBMITTED', 'REJECTED')
         )
@@ -286,9 +302,9 @@ CREATE POLICY "denoms_modify_policy" ON public.cash_report_denominations
       SELECT 1 FROM public.cash_reports r
       WHERE r.id = cash_report_denominations.report_id
       AND (
-        public.current_user_role() = 'AUDIT_PUSAT'
+        public.current_user_role() IN ('AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN')
         OR (
-          public.current_user_role() = 'KASIR'
+          (public.current_user_role() = 'KASIR' OR public.is_acting_cashier(r.branch_id, r.business_date, auth.uid()))
           AND r.cashier_id = auth.uid()
           AND r.status IN ('DRAFT', 'SUBMITTED', 'REJECTED')
         )
@@ -317,26 +333,47 @@ CREATE POLICY "non_cash_insert_policy" ON public.non_cash_transactions
   FOR INSERT TO authenticated
   WITH CHECK (
     (
-      public.current_user_role() = 'KASIR'
+      (
+        public.current_user_role() = 'KASIR'
+        OR EXISTS (
+          SELECT 1 FROM public.cash_reports r
+          WHERE r.id = non_cash_transactions.report_id
+            AND public.is_acting_cashier(r.branch_id, r.business_date, auth.uid())
+        )
+      )
       AND cashier_id = auth.uid()
     )
-    OR public.current_user_role() = 'AUDIT_PUSAT'
+    OR public.current_user_role() IN ('AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN')
   );
 
 DROP POLICY IF EXISTS "non_cash_update_policy" ON public.non_cash_transactions;
 CREATE POLICY "non_cash_update_policy" ON public.non_cash_transactions
   FOR UPDATE TO authenticated
   USING (
-    public.current_user_role() IN ('PERBANKAN', 'AUDIT_PUSAT')
+    public.current_user_role() IN ('PERBANKAN', 'AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN')
     OR (
-      public.current_user_role() = 'KASIR'
+      (
+        public.current_user_role() = 'KASIR'
+        OR EXISTS (
+          SELECT 1 FROM public.cash_reports r
+          WHERE r.id = non_cash_transactions.report_id
+            AND public.is_acting_cashier(r.branch_id, r.business_date, auth.uid())
+        )
+      )
       AND cashier_id = auth.uid()
     )
   )
   WITH CHECK (
-    public.current_user_role() IN ('PERBANKAN', 'AUDIT_PUSAT')
+    public.current_user_role() IN ('PERBANKAN', 'AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN')
     OR (
-      public.current_user_role() = 'KASIR'
+      (
+        public.current_user_role() = 'KASIR'
+        OR EXISTS (
+          SELECT 1 FROM public.cash_reports r
+          WHERE r.id = non_cash_transactions.report_id
+            AND public.is_acting_cashier(r.branch_id, r.business_date, auth.uid())
+        )
+      )
       AND cashier_id = auth.uid()
     )
   );
@@ -346,10 +383,17 @@ CREATE POLICY "non_cash_delete_policy" ON public.non_cash_transactions
   FOR DELETE TO authenticated
   USING (
     (
-      public.current_user_role() = 'KASIR'
+      (
+        public.current_user_role() = 'KASIR'
+        OR EXISTS (
+          SELECT 1 FROM public.cash_reports r
+          WHERE r.id = non_cash_transactions.report_id
+            AND public.is_acting_cashier(r.branch_id, r.business_date, auth.uid())
+        )
+      )
       AND cashier_id = auth.uid()
     )
-    OR public.current_user_role() = 'AUDIT_PUSAT'
+    OR public.current_user_role() IN ('AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN')
   );
 
 -- 3.4 Policies: branch_cash_sessions
@@ -415,9 +459,12 @@ DROP POLICY IF EXISTS "cashier_cash_transfers_insert_policy" ON public.cashier_c
 CREATE POLICY "cashier_cash_transfers_insert_policy" ON public.cashier_cash_transfers
   FOR INSERT TO authenticated
   WITH CHECK (
-    public.current_user_role() = 'AUDIT_PUSAT'
+    public.current_user_role() IN ('AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN')
     OR (
-      public.current_user_role() IN ('KASIR', 'AUDIT_CABANG')
+      (
+        public.current_user_role() IN ('KASIR', 'AUDIT_CABANG')
+        OR public.is_acting_cashier(branch_id, business_date, auth.uid())
+      )
       AND branch_id = public.current_user_branch_id()
     )
   );

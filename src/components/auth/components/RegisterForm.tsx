@@ -8,7 +8,7 @@ interface RegisterFormProps {
   onSubmit: (params: {
     name: string;
     username: string;
-    email: string;
+    email?: string;
     password: string;
     role: UserRole;
     branchId?: string;
@@ -24,26 +24,37 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 }) => {
   const [regName, setRegName] = useState('');
   const [regUsername, setRegUsername] = useState('');
-  const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [regRole, setRegRole] = useState<UserRole>('KASIR');
-  const [regBranchId, setRegBranchId] = useState<string>(branches[0]?.id || '');
 
-  // Otomatis pilih cabang pertama saat daftar branches berhasil dimuat
+  const activeBranches = React.useMemo(() => {
+    return (branches || []).filter((b) => b.status !== 'INACTIVE');
+  }, [branches]);
+
+  const [regBranchId, setRegBranchId] = useState<string>(activeBranches[0]?.id || '');
+
+  // Otomatis pilih cabang pertama yang aktif saat daftar branches berhasil dimuat
   useEffect(() => {
-    if (!regBranchId && branches.length > 0) {
-      setRegBranchId(branches[0].id);
+    if (!regBranchId && activeBranches.length > 0) {
+      setRegBranchId(activeBranches[0].id);
     }
-  }, [branches, regBranchId]);
+  }, [activeBranches, regBranchId]);
 
   const isBranchRole = ['KASIR', 'SPV', 'KEPALA_CABANG', 'AUDIT_CABANG'].includes(regRole);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!regName.trim() || !regUsername.trim() || !regEmail.trim() || !regPassword) {
-      onError('Semua kolom formulir pendaftaran wajib diisi.');
+    const cleanUsername = regUsername.trim().toLowerCase().replace(/[^a-z0-9_.]/g, '');
+
+    if (!regName.trim() || !cleanUsername || !regPassword) {
+      onError('Nama, username, dan password wajib diisi.');
+      return;
+    }
+
+    if (cleanUsername.length < 3) {
+      onError('Username minimal harus 3 karakter.');
       return;
     }
 
@@ -62,10 +73,12 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       return;
     }
 
+    const generatedEmail = `${cleanUsername}@branchcash.internal`;
+
     onSubmit({
       name: regName.trim(),
-      username: regUsername.trim().toLowerCase(),
-      email: regEmail.trim(),
+      username: cleanUsername,
+      email: generatedEmail,
       password: regPassword,
       role: regRole,
       branchId: isBranchRole ? regBranchId : undefined,
@@ -93,34 +106,18 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-2.5">
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Username
-          </label>
-          <input
-            type="text"
-            required
-            value={regUsername}
-            onChange={(e) => setRegUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))}
-            placeholder="username"
-            className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 placeholder-slate-400 outline-none transition-all"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Email
-          </label>
-          <input
-            type="email"
-            required
-            value={regEmail}
-            onChange={(e) => setRegEmail(e.target.value)}
-            placeholder="email@kantor.com"
-            className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 placeholder-slate-400 outline-none transition-all"
-          />
-        </div>
+      <div>
+        <label className="block text-xs font-semibold text-slate-700 mb-1">
+          Username
+        </label>
+        <input
+          type="text"
+          required
+          value={regUsername}
+          onChange={(e) => setRegUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))}
+          placeholder="username (tanpa spasi)"
+          className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 placeholder-slate-400 outline-none transition-all"
+        />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -152,10 +149,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               onChange={(e) => setRegBranchId(e.target.value)}
               className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 outline-none"
             >
-              {branches.length === 0 ? (
-                <option value="">Memuat cabang...</option>
+              {activeBranches.length === 0 ? (
+                <option value="">Tidak ada cabang aktif</option>
               ) : (
-                branches.map((b) => (
+                activeBranches.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.code} - {b.name}
                   </option>

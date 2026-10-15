@@ -7,12 +7,14 @@ import {
   CreditCard, 
   Building,
   CheckCircle2,
-  ShieldAlert
+  ShieldAlert,
+  FileSpreadsheet
 } from 'lucide-react';
 import { DenomMasterTab } from './DenomMasterTab';
 import { BankMasterTab } from './BankMasterTab';
 import { PaymentMethodMasterTab } from './PaymentMethodMasterTab';
 import { BranchMasterTab } from './BranchMasterTab';
+import { BatchImportMasterModal } from './modals/BatchImportMasterModal';
 
 export type MasterSubTab = 'denoms' | 'banks' | 'payment_methods' | 'branches';
 
@@ -23,8 +25,15 @@ interface MasterDataViewProps {
 export const MasterDataView: React.FC<MasterDataViewProps> = ({ initialSubTab = 'denoms' }) => {
   const { currentUser, masterDenoms, banks, paymentMethods, branches } = useApp();
   const [activeSubTab, setActiveSubTab] = useState<MasterSubTab>(initialSubTab);
+  const [isBatchImportOpen, setIsBatchImportOpen] = useState(false);
+  const [feedback, setFeedback] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   const isSuperAdmin = currentUser.role === 'AUDIT_PUSAT_ADMIN';
+
+  const showNotification = (text: string, type: 'success' | 'error') => {
+    setFeedback({ text, type });
+    setTimeout(() => setFeedback(null), 4000);
+  };
 
   // Metrics for overview cards
   const activeBanksCount = banks.filter((b) => b.isActive).length;
@@ -66,6 +75,8 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({ initialSubTab = 
     },
   ];
 
+  const currentTab = tabConfigs.find(t => t.id === activeSubTab);
+
   return (
     <div className="space-y-6">
       {/* Role Notice if not AUDIT_PUSAT_ADMIN */}
@@ -78,6 +89,16 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({ initialSubTab = 
               Pengelolaan master data merupakan kewenangan khusus <strong>Super Admin (AUDIT_PUSAT_ADMIN)</strong>. Akun Anda tidak memiliki hak ubah data master.
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Action Notification Alert */}
+      {feedback && (
+        <div className={`p-3 rounded-xl border text-xs font-semibold flex items-center justify-between transition-all ${
+          feedback.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-rose-50 border-rose-200 text-rose-900'
+        }`}>
+          <span>{feedback.text}</span>
+          <button type="button" onClick={() => setFeedback(null)} className="font-bold cursor-pointer">×</button>
         </div>
       )}
 
@@ -102,10 +123,21 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({ initialSubTab = 
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          {isSuperAdmin && (
+            <button
+              type="button"
+              onClick={() => setIsBatchImportOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>Import Excel ({currentTab?.label})</span>
+            </button>
+          )}
+
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Sinkronisasi Realtime Aktif</span>
+            <span>Realtime Aktif</span>
           </div>
         </div>
       </div>
@@ -158,6 +190,14 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({ initialSubTab = 
         {activeSubTab === 'payment_methods' && <PaymentMethodMasterTab />}
         {activeSubTab === 'branches' && <BranchMasterTab />}
       </div>
+
+      {/* Modal Batch Import Excel */}
+      <BatchImportMasterModal
+        isOpen={isBatchImportOpen}
+        type={activeSubTab}
+        onClose={() => setIsBatchImportOpen(false)}
+        onSuccess={(msg) => showNotification(msg, 'success')}
+      />
     </div>
   );
 };

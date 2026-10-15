@@ -70,3 +70,29 @@ BEGIN
   RETURN v_branch_id;
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public;
+
+-- Helper: Cek apakah pengguna saat ini adalah SPV yang ditugaskan sebagai Kasir (acting cashier)
+DROP FUNCTION IF EXISTS public.is_acting_cashier(UUID, DATE, UUID) CASCADE;
+CREATE OR REPLACE FUNCTION public.is_acting_cashier(
+  p_branch_id UUID, 
+  p_business_date DATE, 
+  p_user_id UUID DEFAULT auth.uid()
+)
+RETURNS BOOLEAN AS $$
+BEGIN
+  IF p_user_id IS NULL OR p_branch_id IS NULL OR p_business_date IS NULL THEN
+    RETURN FALSE;
+  END IF;
+
+  RETURN EXISTS (
+    SELECT 1 
+    FROM public.branch_cash_sessions s
+    JOIN public.users u ON u.id = p_user_id
+    WHERE s.branch_id = p_branch_id
+      AND s.business_date = p_business_date
+      AND s.acting_cashier_user_id = p_user_id
+      AND u.role = 'SPV'
+  );
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public;
+

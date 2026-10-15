@@ -10,14 +10,23 @@ export const useCashierDenominations = (
   ensureActiveReport: () => CashReport,
   isLocked: boolean
 ) => {
-  const { currentUser, masterDenoms, updateReportDenominations } = useApp();
-  const isCashierRole = currentUser.role === 'KASIR';
+  const { currentUser, cashSessions, selectedDate, masterDenoms, updateReportDenominations } = useApp();
+  const isCashierRole = currentUser.role === 'KASIR' || (currentUser.role === 'SPV' && (cashSessions || []).some(s => s.actingCashierUserId === currentUser.id && s.businessDate === selectedDate));
 
   const activeMasterList = useMemo<DenomConfig[]>(() => {
-    return Array.isArray(masterDenoms)
-      ? [...masterDenoms].sort((a, b) => a.sortOrder - b.sortOrder)
-      : [];
-  }, [masterDenoms]);
+    if (!Array.isArray(masterDenoms)) return [];
+
+    // ID pecahan yang sudah pernah diisi pada laporan aktif ini (historis tetap muncul)
+    const filledDenomIds = new Set(
+      (activeReport?.denominations || [])
+        .filter((d) => (d.subtotal && d.subtotal > 0) || (d.breakdown && d.breakdown.length > 0))
+        .map((d) => d.denomId)
+    );
+
+    return [...masterDenoms]
+      .filter((m) => m.isActive !== false || filledDenomIds.has(m.id))
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  }, [masterDenoms, activeReport?.denominations]);
 
   const [activeBreakdownMaster, setActiveBreakdownMaster] = useState<DenomConfig | null>(null);
   const [editingBreakdownItem, setEditingBreakdownItem] = useState<DenomBreakdownItem | null>(null);

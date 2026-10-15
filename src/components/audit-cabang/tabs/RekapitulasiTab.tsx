@@ -32,15 +32,26 @@ export const RekapitulasiTab: React.FC<RekapitulasiTabProps> = ({
     );
   }, [reports, currentUser.branchId]);
 
-  const activeMasterList: DenomConfig[] = useMemo(() => {
-    return (masterDenoms && masterDenoms.length > 0)
-      ? [...masterDenoms].sort((a, b) => a.sortOrder - b.sortOrder)
-      : [];
-  }, [masterDenoms]);
-
   const filteredReports = useMemo(() => {
     return branchReports.filter((r) => r.businessDate === selectedDate);
   }, [branchReports, selectedDate]);
+
+  const activeMasterList: DenomConfig[] = useMemo(() => {
+    if (!masterDenoms || masterDenoms.length === 0) return [];
+
+    const usedDenomIds = new Set<string>();
+    filteredReports.forEach((rep) => {
+      (rep.denominations || []).forEach((d) => {
+        if ((d.subtotal && d.subtotal > 0) || (d.breakdown && d.breakdown.length > 0)) {
+          usedDenomIds.add(d.denomId);
+        }
+      });
+    });
+
+    return [...masterDenoms]
+      .filter((m) => m.isActive !== false || usedDenomIds.has(m.id))
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  }, [masterDenoms, filteredReports]);
 
   const allNonCashTransactions = useMemo(() => {
     const list: (NonCashTransaction & { reportNumber: string; businessDate: string })[] = [];

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { CashReport, DenomConfig, DenomBreakdownItem } from '../../types';
+import { AuditCabangDashboardTab } from './tabs/AuditCabangDashboardTab';
 import { PenunjukanBandarTab } from './tabs/PenunjukanBandarTab';
 import { MutasiKasTab } from './tabs/MutasiKasTab';
 import { RekapitulasiTab } from './tabs/RekapitulasiTab';
@@ -10,17 +11,17 @@ import { BatchComputerCashModal } from './modals/BatchComputerCashModal';
 import { CellPopover, CellPopoverData } from './modals/CellPopover';
 
 interface AuditCabangViewProps {
-  initialTab?: 'bandar' | 'mutasi' | 'rekap' | 'operasional';
+  initialTab?: 'dashboard' | 'bandar' | 'mutasi' | 'rekap' | 'operasional';
 }
 
 export const AuditCabangView: React.FC<AuditCabangViewProps> = ({ 
-  initialTab = 'bandar' 
+  initialTab = 'dashboard' 
 }) => {
-  const { currentUser, reports } = useApp();
+  const { currentUser, reports, selectedDate } = useApp();
   const isAuditCabangRole = currentUser.role === 'AUDIT_CABANG' || currentUser.role === 'AUDIT_PUSAT' || currentUser.role === 'AUDIT_PUSAT_ADMIN';
 
   // Active Tab: dikontrol via Sidebar
-  const [activeAuditTab, setActiveAuditTab] = useState<'bandar' | 'mutasi' | 'rekap' | 'operasional'>(initialTab);
+  const [activeAuditTab, setActiveAuditTab] = useState<'dashboard' | 'bandar' | 'mutasi' | 'rekap' | 'operasional'>(initialTab);
 
   useEffect(() => {
     if (initialTab) {
@@ -102,11 +103,18 @@ export const AuditCabangView: React.FC<AuditCabangViewProps> = ({
   };
 
   const branchReports = reports.filter(
-    (r) => r.branchId === currentUser.branchId || (!currentUser.branchId && true)
+    (r) => (r.branchId === currentUser.branchId || !currentUser.branchId) && r.businessDate === selectedDate
   );
 
   return (
     <div className="space-y-4">
+      {activeAuditTab === 'dashboard' && (
+        <AuditCabangDashboardTab
+          onOpenInputModal={handleOpenInputModal}
+          onOpenBatchModal={handleOpenBatchModal}
+        />
+      )}
+
       {activeAuditTab === 'bandar' && <PenunjukanBandarTab />}
       
       {activeAuditTab === 'mutasi' && <MutasiKasTab />}
@@ -137,7 +145,7 @@ export const AuditCabangView: React.FC<AuditCabangViewProps> = ({
         isOpen={isBatchModalOpen}
         onClose={() => setIsBatchModalOpen(false)}
         filteredReports={branchReports}
-        selectedDate={branchReports[0]?.businessDate || new Date().toISOString().split('T')[0]}
+        selectedDate={selectedDate}
       />
 
       {/* Popover Breakdown Cell */}

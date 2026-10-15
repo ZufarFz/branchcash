@@ -136,7 +136,7 @@ export const TransferCashModal: React.FC<TransferCashModalProps> = ({
                 >
                   {peerCashiers.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} {c.username ? `(@${c.username})` : `(${c.email})`}
+                      {c.name} {c.username ? `(@${c.username})` : ''}
                     </option>
                   ))}
                 </select>

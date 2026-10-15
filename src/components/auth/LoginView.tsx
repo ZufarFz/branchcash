@@ -23,7 +23,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onSuccess }) => {
     try {
       const res = await login(identifier, pass);
       if (!res.success) {
-        setErrorMessage(res.error || 'Email/username atau password salah.');
+        setErrorMessage(res.error || 'Username atau password salah.');
       } else {
         onSuccess?.();
       }
@@ -56,8 +56,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-900 via-indigo-950 to-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 sm:p-8 border border-slate-100">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl shadow-slate-200/60 p-6 sm:p-8 border border-slate-200">
         {/* Brand header */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-600/30 mb-3">

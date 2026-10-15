@@ -8,7 +8,7 @@ interface ModalProps {
   subtitle?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | 'full';
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -36,7 +36,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   if (!isOpen) return null;
 
-  const cleanKey = (maxWidth?.replace(/^max-w-/, '') || '2xl') as 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
+  const cleanKey = (maxWidth?.replace(/^max-w-/, '') || '2xl') as 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | 'full';
   const maxWidthClasses = {
     sm: 'max-w-sm',
     md: 'max-w-md',
@@ -45,6 +45,9 @@ export const Modal: React.FC<ModalProps> = ({
     '2xl': 'max-w-2xl',
     '3xl': 'max-w-3xl',
     '4xl': 'max-w-4xl',
+    '5xl': 'max-w-5xl',
+    '6xl': 'max-w-6xl',
+    'full': 'max-w-[94vw]',
   }[cleanKey] || 'max-w-2xl';
 
   return (

@@ -54,7 +54,7 @@ export interface AppContextType {
   register: (params: {
     name: string;
     username?: string;
-    email: string;
+    email?: string;
     password: string;
     role: UserRole;
     branchId?: string;
@@ -104,8 +104,8 @@ export interface AppContextType {
   // Sesi Kas Cabang Harian & Mutasi Kas Silang
   cashSessions: BranchCashSession[];
   cashTransfers: CashierCashTransfer[];
-  openCashSession: (params: { businessDate: string; bandarUserId: string; computerBeginningCash?: number; notes?: string }) => Promise<{ success: boolean; session?: BranchCashSession; error?: string }>;
-  updateCashSessionBandar: (sessionId: string, newBandarUserId: string) => Promise<{ success: boolean; error?: string }>;
+  openCashSession: (params: { businessDate: string; bandarUserId: string; actingCashierUserId?: string | null; computerBeginningCash?: number; notes?: string }) => Promise<{ success: boolean; session?: BranchCashSession; error?: string }>;
+  updateCashSessionBandar: (sessionId: string, newBandarUserId: string, actingCashierUserId?: string | null) => Promise<{ success: boolean; error?: string }>;
   updateSessionBeginningCash: (sessionId: string, amount: number) => Promise<{ success: boolean; error?: string }>;
   transferCash: (params: { businessDate: string; toUserId: string; transferType: 'MODAL' | 'SETOR'; amount: number; notes?: string }) => Promise<{ success: boolean; error?: string }>;
   confirmCashTransfer: (transferId: string, action: 'CONFIRM' | 'REJECT') => Promise<{ success: boolean; error?: string }>;

@@ -23,9 +23,12 @@ export const useCashierTransfers = (selectedDate: string) => {
 
   const peerCashiers = useMemo(() => {
     return allUsers.filter(
-      (u) => u.role === 'KASIR' && u.id !== currentUser.id && (!currentBranchId || u.branchId === currentBranchId)
+      (u) =>
+        (u.role === 'KASIR' || u.id === currentSession?.actingCashierUserId) &&
+        u.id !== currentUser.id &&
+        (!currentBranchId || u.branchId === currentBranchId)
     );
-  }, [allUsers, currentUser.id, currentBranchId]);
+  }, [allUsers, currentUser.id, currentBranchId, currentSession]);
 
   const myTransfers = useMemo(() => {
     return (cashTransfers || []).filter((t) => {

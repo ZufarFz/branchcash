@@ -1,13 +1,13 @@
 import React from 'react';
 import { formatDate } from '../../../utils/formatters';
 import { BranchCashSession } from '../../../types';
-import { Calendar, Send, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Send, RefreshCw, AlertTriangle } from 'lucide-react';
 
 interface TransferHeaderCardProps {
   currentSession: BranchCashSession | null;
   isUserBandar: boolean;
   selectedDate: string;
-  onDateChange: (date: string) => void;
+  onDateChange?: (date: string) => void;
   onOpenTransferModal: (type: 'MODAL' | 'SETOR') => void;
   onRefresh: () => void;
   totalModalGiven: number;
@@ -20,7 +20,6 @@ export const TransferHeaderCard: React.FC<TransferHeaderCardProps> = ({
   currentSession,
   isUserBandar,
   selectedDate,
-  onDateChange,
   onOpenTransferModal,
   onRefresh,
   totalModalGiven,
@@ -28,14 +27,6 @@ export const TransferHeaderCard: React.FC<TransferHeaderCardProps> = ({
   totalModalReceived,
   totalSetorSent
 }) => {
-  const todayStr = React.useMemo(() => {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  }, []);
-
   if (!currentSession) {
     return (
       <div className="bg-amber-50/90 border border-amber-300 rounded-xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -50,22 +41,6 @@ export const TransferHeaderCard: React.FC<TransferHeaderCardProps> = ({
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-          <label
-            htmlFor="cashier-transfer-date-picker"
-            className="inline-flex items-center gap-1.5 bg-white hover:bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 cursor-pointer transition-colors shadow-2xs"
-          >
-            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-            <span>Ubah Tanggal:</span>
-            <input
-              id="cashier-transfer-date-picker"
-              type="date"
-              value={selectedDate}
-              max={todayStr}
-              onChange={(e) => onDateChange(e.target.value)}
-              className="bg-transparent border-none outline-none font-bold text-slate-900 cursor-pointer p-0 text-xs"
-            />
-          </label>
-
           <button
             type="button"
             onClick={onRefresh}
@@ -84,38 +59,23 @@ export const TransferHeaderCard: React.FC<TransferHeaderCardProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
         <div>
           <div className="flex items-center gap-2">
-              <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                isUserBandar ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-purple-100 text-purple-800 border border-purple-200'
-              }`}>
-                {isUserBandar ? 'Kasir Bandar Hari Ini' : 'Kasir Harian'}
+            <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+              isUserBandar ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-purple-100 text-purple-800 border border-purple-200'
+            }`}>
+              {isUserBandar ? 'Kasir Bandar Hari Ini' : 'Kasir Harian'}
+            </span>
+            {!isUserBandar && (
+              <span className="text-xs text-slate-600 font-medium">
+                Bandar: <strong className="text-slate-900">{currentSession.bandarUserName}</strong>
               </span>
-              {!isUserBandar && (
-                <span className="text-xs text-slate-600 font-medium">
-                  Bandar: <strong className="text-slate-900">{currentSession.bandarUserName}</strong>
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-slate-500 mt-1">
-              Sesi Kas Cabang Tanggal {formatDate(selectedDate)} (Dibuka oleh {currentSession.assignedByName || 'Audit Cabang'})
-            </p>
+            )}
           </div>
+          <p className="text-xs text-slate-500 mt-1">
+            Sesi Kas Cabang Tanggal {formatDate(selectedDate)} (Dibuka oleh {currentSession.assignedByName || 'Audit Cabang'})
+          </p>
+        </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <label
-            htmlFor="cashier-transfer-date-picker"
-            className="inline-flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 cursor-pointer transition-colors"
-          >
-            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-            <span>Ubah Tanggal:</span>
-            <input
-              id="cashier-transfer-date-picker"
-              type="date"
-              value={selectedDate}
-              max={todayStr}
-              onChange={(e) => onDateChange(e.target.value)}
-              className="bg-transparent border-none outline-none font-bold text-slate-900 cursor-pointer p-0 text-xs"
-            />
-          </label>
 
           {isUserBandar ? (
             <button

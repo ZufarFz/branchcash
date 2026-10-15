@@ -63,6 +63,8 @@ export const Header: React.FC<HeaderProps> = ({
         return { label: 'Dashboard Admin Pusat', icon: ShieldCheck };
       case 'dashboard-cabang':
         return { label: 'Dashboard Cabang', icon: Store };
+      case 'dashboard-audit-cabang':
+        return { label: 'Dashboard Audit Cabang', icon: Calculator };
       case 'input-tunai':
         return { label: 'Input Fisik Uang Tunai', icon: Coins };
       case 'input-non-tunai':

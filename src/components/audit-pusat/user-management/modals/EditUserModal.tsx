@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, UserRole, Branch } from '../../../../types';
 import { Modal } from '../../../common/Modal';
-import { Lock, ShieldCheck, UserCheck, Check } from 'lucide-react';
+import { Lock, ShieldCheck, UserCheck, Check, KeyRound } from 'lucide-react';
 
 interface EditUserModalProps {
   isOpen: boolean;
@@ -11,6 +11,7 @@ interface EditUserModalProps {
   onSave: (userId: string, data: { name: string; role: UserRole; branchId?: string | null; status: 'PENDING' | 'ACTIVE' | 'INACTIVE' }) => Promise<void>;
   isProcessing: boolean;
   currentUserRole?: UserRole;
+  onResetPassword?: (user: User) => void;
 }
 
 export const EditUserModal: React.FC<EditUserModalProps> = ({
@@ -21,6 +22,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   onSave,
   isProcessing,
   currentUserRole,
+  onResetPassword,
 }) => {
   const [name, setName] = useState('');
   const [role, setRole] = useState<UserRole>('KASIR');
@@ -58,22 +60,16 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
       isOpen={isOpen}
       onClose={() => !isProcessing && onClose()}
       title="Edit Data & Otorisasi Pengguna"
-      subtitle={`Kelola pengaturan peran dan cabang untuk @${user.username || user.email}`}
+      subtitle={`Kelola pengaturan peran dan cabang untuk @${user.username || user.name.toLowerCase().replace(/[^a-z0-9_.]/g, '')}`}
       maxWidth="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Username & Email Readonly Display */}
-        <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-              <Lock className="w-3 h-3 text-slate-400" /> Username (Terkunci)
-            </span>
-            <p className="text-xs font-mono font-bold text-slate-800 mt-0.5">@{user.username}</p>
-          </div>
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Email</span>
-            <p className="text-xs font-semibold text-slate-700 truncate mt-0.5">{user.email}</p>
-          </div>
+        {/* Username Readonly Display */}
+        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+            <Lock className="w-3 h-3 text-slate-400" /> Username Akun (Terkunci Anti-Fraud)
+          </span>
+          <p className="text-xs font-mono font-bold text-slate-800 mt-0.5">@{user.username || user.name.toLowerCase().replace(/[^a-z0-9_.]/g, '')}</p>
         </div>
 
         {/* Nama Lengkap */}
@@ -110,10 +106,10 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
           </select>
         </div>
 
-        {/* Unit Penempatan Cabang */}
+        {/* Cabang Penempatan */}
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Unit Penempatan {isBranchRole ? '(Wajib Cabang)' : '(Kantor Pusat)'}
+            Cabang Penempatan {isBranchRole ? '(Wajib Cabang)' : '(Kantor Pusat)'}
           </label>
           {isBranchRole ? (
             <select
@@ -148,11 +144,40 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
             onChange={(e) => setStatus(e.target.value as any)}
             className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 text-slate-900 outline-none transition-all cursor-pointer font-bold"
           >
-            <option value="PENDING" className="text-amber-800">Menunggu Persetujuan (PENDING)</option>
-            <option value="ACTIVE" className="text-emerald-800">Disetujui / Aktif (ACTIVE)</option>
+            {user.status === 'PENDING' && (
+              <option value="PENDING" className="text-amber-800">Menunggu Persetujuan (PENDING)</option>
+            )}
+            <option value="ACTIVE" className="text-emerald-800">Aktif (ACTIVE)</option>
             <option value="INACTIVE" className="text-slate-700">Non-Aktif (INACTIVE)</option>
           </select>
+          {user.status !== 'PENDING' && (
+            <span className="text-[10px] text-slate-400 mt-0.5 block">
+              Akun yang sudah diverifikasi hanya dapat diubah antara Aktif atau Non-Aktif.
+            </span>
+          )}
         </div>
+
+        {/* Opsi Reset Password Akun */}
+        {currentUserRole === 'AUDIT_PUSAT_ADMIN' && onResetPassword && (
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+            <div>
+              <span className="text-xs font-bold text-slate-800 block">Kata Sandi Pengguna</span>
+              <span className="text-[11px] text-slate-500">Reset kata sandi jika pengguna lupa sandi akun</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const target = user;
+                onClose();
+                onResetPassword(target);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl transition-colors cursor-pointer"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Ganti Sandi</span>
+            </button>
+          </div>
+        )}
 
         {/* Tombol Simpan */}
         <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">

@@ -61,7 +61,9 @@ export const useReportMutations = (
 
     const reportNumber = `CR-${yyMMdd}-${branchCodeClean}-${cashierUniq}`;
 
-    const defaultDenoms: CashDenominationItem[] = (masterDenoms || []).map(d => ({
+    const defaultDenoms: CashDenominationItem[] = (masterDenoms || [])
+      .filter((d) => d.isActive !== false)
+      .map((d) => ({
       denomId: d.id,
       denomCode: d.code,
       denomLabel: d.label,

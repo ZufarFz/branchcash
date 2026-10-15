@@ -4,7 +4,6 @@ import { CashReport, ReportStatus } from '../../../types';
 import { formatDate } from '../../../utils/formatters';
 import { Modal } from '../../common/Modal';
 import { BatchCashierRow } from '../components/BatchCashierRow';
-import { BatchSummaryCard } from '../components/BatchSummaryCard';
 import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 
 interface BatchComputerCashModalProps {
@@ -18,7 +17,7 @@ export const BatchComputerCashModal: React.FC<BatchComputerCashModalProps> = ({
   isOpen,
   onClose,
   filteredReports,
-  selectedDate
+  selectedDate: propSelectedDate
 }) => {
   const { 
     currentUser, 
@@ -26,8 +25,11 @@ export const BatchComputerCashModal: React.FC<BatchComputerCashModalProps> = ({
     inputComputerCash, 
     approveReport, 
     rejectReport, 
-    updateReportStatus 
+    updateReportStatus,
+    selectedDate: appSelectedDate
   } = useApp();
+
+  const activeDate = propSelectedDate || appSelectedDate;
 
   const [batchInputData, setBatchInputData] = useState<Record<string, { 
     tunai: string; 
@@ -146,10 +148,10 @@ export const BatchComputerCashModal: React.FC<BatchComputerCashModalProps> = ({
         if (!isSavingBatch) onClose();
       }}
       title={batchModalTitle}
-      subtitle={`Tanggal: ${formatDate(selectedDate)} • ${filteredReports.length} Kasir`}
-      maxWidth="md"
+      subtitle={`Tanggal: ${formatDate(activeDate)} • ${filteredReports.length} Kasir`}
+      maxWidth="6xl"
     >
-      <form onSubmit={handleSaveBatch} className="space-y-3.5">
+      <form onSubmit={handleSaveBatch} className="space-y-4">
         {batchSaveStatus && (
           <div className={`p-2.5 rounded-xl text-xs flex items-center gap-2 border ${batchSaveStatus.type === 'success' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'}`}>
             {batchSaveStatus.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />}
@@ -158,11 +160,11 @@ export const BatchComputerCashModal: React.FC<BatchComputerCashModalProps> = ({
         )}
 
         {filteredReports.length === 0 ? (
-          <div className="text-center py-6 text-slate-500 text-xs bg-slate-50 rounded-xl border border-slate-200">
-            Tidak ada laporan kasir pada tanggal bisnis ini ({formatDate(selectedDate)}).
+          <div className="text-center py-10 text-slate-500 text-xs bg-slate-50 rounded-xl border border-slate-200">
+            Tidak ada laporan kasir pada tanggal bisnis ini ({formatDate(activeDate)}).
           </div>
         ) : (
-          <div className="space-y-3.5 max-h-[58vh] overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 max-h-[66vh] overflow-y-auto pr-1">
             {filteredReports.map((rep, idx) => (
               <BatchCashierRow
                 key={rep.id}
@@ -178,9 +180,7 @@ export const BatchComputerCashModal: React.FC<BatchComputerCashModalProps> = ({
           </div>
         )}
 
-        <BatchSummaryCard reports={filteredReports} batchInputData={batchInputData} />
-
-        <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-200">
+        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200">
           <button
             type="button"
             onClick={onClose}

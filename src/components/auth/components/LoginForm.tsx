@@ -21,7 +21,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isLoading, onSubmit }) => 
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-xs font-semibold text-slate-700 mb-1">
-          Email atau Username
+          Username
         </label>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -31,8 +31,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isLoading, onSubmit }) => 
             type="text"
             required
             value={loginIdentifier}
-            onChange={(e) => setLoginIdentifier(e.target.value)}
-            placeholder="username atau email"
+            onChange={(e) => setLoginIdentifier(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))}
+            placeholder="Masukkan username Anda"
             className="w-full pl-9 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 placeholder-slate-400 outline-none transition-all"
           />
         </div>

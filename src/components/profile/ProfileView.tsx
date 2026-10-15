@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { RoleBadge } from '../common/RoleBadge';
-import { 
-  UserCircle, 
-  Lock, 
-  KeyRound, 
-  Building2, 
-  Mail, 
-  AtSign, 
-  Check, 
-  AlertCircle 
+import {
+  UserCircle,
+  Lock,
+  KeyRound,
+  Building2,
+  AtSign,
+  Check,
+  AlertCircle
 } from 'lucide-react';
 
 export const ProfileView: React.FC = () => {
@@ -90,9 +89,6 @@ export const ProfileView: React.FC = () => {
       {/* Page Title */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
-            <UserCircle className="w-6 h-6" />
-          </div>
           <div>
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">Profil Pengguna</h1>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -104,11 +100,10 @@ export const ProfileView: React.FC = () => {
 
       {/* Notification Toast */}
       {message && (
-        <div className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-between transition-all ${
-          message.type === 'success'
-            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-            : 'bg-rose-50 border-rose-200 text-rose-900'
-        }`}>
+        <div className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-between transition-all ${message.type === 'success'
+          ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+          : 'bg-rose-50 border-rose-200 text-rose-900'
+          }`}>
           <div className="flex items-center gap-2">
             {message.type === 'success' ? <Check className="w-4 h-4 text-emerald-600" /> : <AlertCircle className="w-4 h-4 text-rose-600" />}
             <span>{message.text}</span>
@@ -121,26 +116,24 @@ export const ProfileView: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-linear-to-br from-indigo-500 to-indigo-700 text-white flex items-center justify-center font-bold text-xl shadow-md">
+            <div className="w-10 h-10 rounded-md bg-indigo-500/10 border border-indigo-500/10 text-indigo-600 flex items-center justify-center font-bold text-xl">
               {currentUser.name.charAt(0).toUpperCase()}
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-lg font-bold text-slate-900">{currentUser.name}</h2>
-                <RoleBadge role={currentUser.role} />
+                <span className="text-slate-400 font-bold">-</span>
+                <span className="text-sm font-medium text-slate-600 capitalize">
+                  {currentUser.role}
+                </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5 font-mono">@{currentUser.username || 'username'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-              ● Akun Aktif
-            </span>
-          </div>
         </div>
 
         {/* Readonly Account Details */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
             <div className="flex items-center justify-between text-slate-500 mb-1">
               <span className="text-[11px] font-semibold flex items-center gap-1.5">
@@ -149,31 +142,20 @@ export const ProfileView: React.FC = () => {
               <Lock className="w-3.5 h-3.5 text-slate-400" title="Username terkunci permanen" />
             </div>
             <p className="text-xs font-mono font-bold text-slate-800">@{currentUser.username}</p>
-            <p className="text-[10px] text-slate-400 mt-1 italic">Permanen (Anti-Fraud)</p>
+            <p className="text-[10px] text-slate-400 mt-1 italic">Identitas Login Unik</p>
           </div>
 
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
             <div className="flex items-center justify-between text-slate-500 mb-1">
               <span className="text-[11px] font-semibold flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5" /> Email
-              </span>
-              <Lock className="w-3.5 h-3.5 text-slate-400" />
-            </div>
-            <p className="text-xs font-semibold text-slate-800 truncate">{currentUser.email}</p>
-            <p className="text-[10px] text-slate-400 mt-1 italic">Identitas Login</p>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-            <div className="flex items-center justify-between text-slate-500 mb-1">
-              <span className="text-[11px] font-semibold flex items-center gap-1.5">
-                <Building2 className="w-3.5 h-3.5" /> Unit Penempatan
+                <Building2 className="w-3.5 h-3.5" /> Cabang Penempatan
               </span>
               <Lock className="w-3.5 h-3.5 text-slate-400" />
             </div>
             <p className="text-xs font-bold text-slate-800">
               {currentBranch ? `${currentBranch.code} - ${currentBranch.name}` : 'Kantor Pusat'}
             </p>
-            <p className="text-[10px] text-slate-400 mt-1 italic">Dikelola Audit Pusat</p>
+            <p className="text-[10px] text-slate-400 mt-1 italic">{currentBranch?.address}</p>
           </div>
         </div>
       </div>

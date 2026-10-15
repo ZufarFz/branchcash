@@ -29,11 +29,16 @@ export const CashierView: React.FC<CashierViewProps> = ({
     createReport,
     resubmitRevision,
     refreshFromSupabase,
+    cashSessions,
     selectedDate,
     setSelectedDate
   } = useApp();
 
-  const isCashierRole = currentUser.role === 'KASIR';
+  const isActingCashier = currentUser.role === 'SPV' && (cashSessions || []).some(
+    (s) => s.actingCashierUserId === currentUser.id && s.businessDate === selectedDate
+  );
+
+  const isCashierRole = currentUser.role === 'KASIR' || isActingCashier;
 
   const [activeSection, setActiveSection] = useState<'transfers' | 'cash' | 'non-cash'>(() => {
     if (initialMode === 'cash') return 'cash';
@@ -52,7 +57,7 @@ export const CashierView: React.FC<CashierViewProps> = ({
   }, [initialMode]);
 
   const myReports = reports.filter((r) => {
-    if (currentUser.role === 'KASIR') {
+    if (isCashierRole) {
       return r.cashierId === currentUser.id;
     }
     return r.cashierId === currentUser.id || r.branchId === currentUser.branchId;

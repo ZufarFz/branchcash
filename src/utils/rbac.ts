@@ -111,8 +111,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     roleNameId: 'Audit Cabang',
     roleDescription: 'Verifikasi kas level cabang dan input nominal Computer Cash / POS',
     workLocation: 'Cabang',
-    allowedTabs: ['penunjukan-bandar', 'mutasi-kas', 'audit-cabang-pos', 'kas-operasional', 'profile'],
-    defaultTab: 'penunjukan-bandar',
+    allowedTabs: ['dashboard-audit-cabang', 'penunjukan-bandar', 'mutasi-kas', 'audit-cabang-pos', 'kas-operasional', 'profile'],
+    defaultTab: 'dashboard-audit-cabang',
     canInputCash: false,
     canInputNonCash: false,
     canSubmitReport: false,
@@ -203,7 +203,11 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
 /**
  * Helper to check if a role is authorized for a specific tab
  */
-export function isTabAuthorized(role: UserRole, tab: string): boolean {
+export function isTabAuthorized(role: UserRole, tab: string, isActingCashier?: boolean): boolean {
+  // Jika SPV ditugaskan sebagai acting cashier, berikan wewenang akses tab kasir
+  if (isActingCashier && ['input-tunai', 'input-non-tunai', 'mutasi-kas'].includes(tab)) {
+    return true;
+  }
   const permissions = ROLE_PERMISSIONS[role];
   if (!permissions) return false;
   return permissions.allowedTabs.includes(tab);

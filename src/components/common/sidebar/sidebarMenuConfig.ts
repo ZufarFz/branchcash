@@ -11,7 +11,8 @@ import {
   Database,
   Users,
   UserCircle,
-  Receipt
+  Receipt,
+  LayoutDashboard
 } from 'lucide-react';
 import { UserRole } from '../../../types';
 
@@ -20,6 +21,7 @@ export type SidebarTab =
   | 'user-management'
   | 'master-data'
   | 'dashboard-cabang' 
+  | 'dashboard-audit-cabang'
   | 'input-tunai' 
   | 'input-non-tunai' 
   | 'mutasi-kas'
@@ -75,11 +77,29 @@ export const getSidebarMenuSections = (
           badge: null,
           badgeColor: '',
         },
+        {
+          id: 'dashboard-audit-cabang',
+          label: 'Dashboard Audit Cabang',
+          shortLabel: 'Audit Cabang',
+          description: 'Workspace terpadu penunjukan bandar, SPV & POS',
+          icon: LayoutDashboard,
+          badge: 'WORKSPACE',
+          badgeColor: 'bg-purple-100 text-purple-800 border-purple-200 font-bold',
+        },
       ],
     },
     {
       title: role === 'AUDIT_CABANG' ? 'Audit & Kas Cabang' : 'Input Kasir (Cabang)',
       items: [
+        {
+          id: 'mutasi-kas',
+          label: 'Pengelolaan Modal & Setor',
+          shortLabel: 'Modal & Setor',
+          description: 'Serah terima modal bandar & setoran kasir',
+          icon: ArrowLeftRight,
+          badge: pendingTransferConfirmCount > 0 ? `${pendingTransferConfirmCount} Butuh ACC` : null,
+          badgeColor: 'bg-amber-100 text-amber-900 border-amber-300 font-bold',
+        },
         {
           id: 'input-tunai',
           label: 'Input Uang Tunai',
@@ -97,15 +117,6 @@ export const getSidebarMenuSections = (
           icon: CreditCard,
           badge: null,
           badgeColor: '',
-        },
-        {
-          id: 'mutasi-kas',
-          label: 'Pengelolaan Modal & Setor',
-          shortLabel: 'Modal & Setor',
-          description: 'Serah terima modal bandar & setoran kasir',
-          icon: ArrowLeftRight,
-          badge: pendingTransferConfirmCount > 0 ? `${pendingTransferConfirmCount} Butuh ACC` : null,
-          badgeColor: 'bg-amber-100 text-amber-900 border-amber-300 font-bold',
         },
         {
           id: 'audit-cabang-pos',

@@ -88,8 +88,9 @@ export const BranchReviewView: React.FC = () => {
                 {c.name.slice(0, 2).toUpperCase()}
               </div>
               <div className="min-w-0">
-                <span className="font-bold text-slate-800 block truncate">{c.name}</span>
-                <span className="text-[11px] text-slate-400 block truncate">{c.email}</span>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  {c.username ? `@${c.username}` : ''}
+                </span>
               </div>
             </div>
           ))}

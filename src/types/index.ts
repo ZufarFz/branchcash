@@ -94,6 +94,7 @@ export interface CashReport {
   branchCode: string;
   cashierId: string;
   cashierName: string;
+  cashierRole?: string;
   status: ReportStatus;
   submittedDate?: string;
   
@@ -113,6 +114,7 @@ export interface CashReport {
   computerCashNonTunai: number | null;
   computerCashTotal: number | null; // computerCashTunai + computerCashNonTunai
   computerCashEnteredBy?: string;
+  computerCashRole?: string;
   computerCashEnteredAt?: string;
   
   // Variances: Physical - Computer Cash
@@ -123,6 +125,7 @@ export interface CashReport {
   // Verification Tracking (Audit Cabang / Audit Pusat - decision seen via status)
   verifiedAt?: string;
   verifiedBy?: string;
+  verifiedRole?: string;
   
   // Penyesuaian Operasional Kasir Non-POS (Diinput Audit Cabang)
   totalExpenseAdjustment?: number;
@@ -142,12 +145,14 @@ export interface CashierOperationalAdjustment {
   branchId: string;
   cashierId: string;
   cashierName?: string;
+  cashierRole?: string;
   businessDate: string;
   type: AdjustmentType;
   amount: number;
   notes: string;
   createdBy: string;
   createdByName?: string;
+  createdByRole?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -159,8 +164,13 @@ export interface BranchCashSession {
   businessDate: string; // YYYY-MM-DD
   bandarUserId: string;
   bandarUserName?: string;
+  bandarRole?: string;
   assignedBy: string;
   assignedByName?: string;
+  assignedByRole?: string;
+  actingCashierUserId?: string | null;
+  actingCashierUserName?: string | null;
+  actingCashierRole?: string | null;
   status: ReportStatus;
   computerBeginningCash?: number;
   transferCount?: number;
@@ -181,8 +191,10 @@ export interface CashierCashTransfer {
   businessDate: string;
   userId: string;
   userName?: string;
+  userRole?: string;
   partnerUserId: string;
   partnerUserName?: string;
+  partnerRole?: string;
   transferType: CashTransferType;
   direction: CashTransferDirection;
   amount: number;
@@ -191,6 +203,7 @@ export interface CashierCashTransfer {
   confirmedAt?: string;
   confirmedBy?: string;
   confirmedByName?: string;
+  confirmedRole?: string;
   notes?: string;
   createdAt: string;
 }

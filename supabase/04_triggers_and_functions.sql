@@ -520,3 +520,326 @@ DROP TRIGGER IF EXISTS trigger_audit_log_immutable ON public.audit_logs;
 CREATE TRIGGER trigger_audit_log_immutable
   BEFORE UPDATE OR DELETE ON public.audit_logs
   FOR EACH ROW EXECUTE FUNCTION public.prevent_audit_log_tampering();
+
+-- ==============================================================================
+-- 6. ROLE SNAPSHOTTING TRIGGERS (IMMUTABLE HISTORICAL ROLES)
+-- ==============================================================================
+
+-- Trigger: Snapshot Peran Sesi Kas Cabang
+CREATE OR REPLACE FUNCTION public.snapshot_session_roles()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.assigned_by IS NOT NULL THEN
+    SELECT role::TEXT INTO NEW.assigned_by_role FROM public.users WHERE id = NEW.assigned_by;
+  END IF;
+  IF NEW.bandar_user_id IS NOT NULL THEN
+    SELECT role::TEXT INTO NEW.bandar_role FROM public.users WHERE id = NEW.bandar_user_id;
+  END IF;
+  IF NEW.acting_cashier_user_id IS NOT NULL THEN
+    SELECT role::TEXT INTO NEW.acting_cashier_role FROM public.users WHERE id = NEW.acting_cashier_user_id;
+  ELSE
+    NEW.acting_cashier_role := NULL;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS trg_snapshot_session_roles ON public.branch_cash_sessions;
+CREATE TRIGGER trg_snapshot_session_roles
+  BEFORE INSERT OR UPDATE ON public.branch_cash_sessions
+  FOR EACH ROW EXECUTE FUNCTION public.snapshot_session_roles();
+
+-- Trigger: Snapshot Peran Laporan Kas
+CREATE OR REPLACE FUNCTION public.snapshot_report_roles()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' OR (NEW.cashier_id IS DISTINCT FROM OLD.cashier_id) OR NEW.cashier_role IS NULL THEN
+    SELECT role::TEXT INTO NEW.cashier_role FROM public.users WHERE id = NEW.cashier_id;
+  END IF;
+
+  IF NEW.computer_cash_updated_by IS NOT NULL AND (TG_OP = 'INSERT' OR OLD.computer_cash_updated_by IS DISTINCT FROM NEW.computer_cash_updated_by OR NEW.computer_cash_role IS NULL) THEN
+    SELECT role::TEXT INTO NEW.computer_cash_role FROM public.users WHERE id = NEW.computer_cash_updated_by;
+  END IF;
+
+  IF NEW.verified_by IS NOT NULL AND (TG_OP = 'INSERT' OR OLD.verified_by IS DISTINCT FROM NEW.verified_by OR NEW.verified_role IS NULL) THEN
+    SELECT role::TEXT INTO NEW.verified_role FROM public.users WHERE id = NEW.verified_by;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS trg_snapshot_report_roles ON public.cash_reports;
+CREATE TRIGGER trg_snapshot_report_roles
+  BEFORE INSERT OR UPDATE ON public.cash_reports
+  FOR EACH ROW EXECUTE FUNCTION public.snapshot_report_roles();
+
+-- Trigger: Snapshot Peran Mutasi Kas Antar-Kasir
+CREATE OR REPLACE FUNCTION public.snapshot_transfer_roles()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' OR NEW.user_role IS NULL THEN
+    SELECT role::TEXT INTO NEW.user_role FROM public.users WHERE id = NEW.user_id;
+  END IF;
+
+  IF TG_OP = 'INSERT' OR NEW.partner_role IS NULL THEN
+    SELECT role::TEXT INTO NEW.partner_role FROM public.users WHERE id = NEW.partner_user_id;
+  END IF;
+
+  IF NEW.confirmed_by IS NOT NULL AND (TG_OP = 'INSERT' OR OLD.confirmed_by IS DISTINCT FROM NEW.confirmed_by OR NEW.confirmed_role IS NULL) THEN
+    SELECT role::TEXT INTO NEW.confirmed_role FROM public.users WHERE id = NEW.confirmed_by;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS trg_snapshot_transfer_roles ON public.cashier_cash_transfers;
+CREATE TRIGGER trg_snapshot_transfer_roles
+  BEFORE INSERT OR UPDATE ON public.cashier_cash_transfers
+  FOR EACH ROW EXECUTE FUNCTION public.snapshot_transfer_roles();
+
+-- Trigger: Snapshot Peran Penyesuaian Kas Operasional
+CREATE OR REPLACE FUNCTION public.snapshot_adjustment_roles()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' OR NEW.created_by_role IS NULL THEN
+    SELECT role::TEXT INTO NEW.created_by_role FROM public.users WHERE id = NEW.created_by;
+  END IF;
+
+  IF TG_OP = 'INSERT' OR NEW.cashier_role IS NULL THEN
+    SELECT role::TEXT INTO NEW.cashier_role FROM public.users WHERE id = NEW.cashier_id;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS trg_snapshot_adjustment_roles ON public.cashier_operational_adjustments;
+CREATE TRIGGER trg_snapshot_adjustment_roles
+  BEFORE INSERT OR UPDATE ON public.cashier_operational_adjustments
+  FOR EACH ROW EXECUTE FUNCTION public.snapshot_adjustment_roles();
+
+-- ==============================================================================
+-- FUNGSI ADMIN: Reset Password & Pendaftaran Langsung Pengguna (Super Admin)
+-- ==============================================================================
+
+CREATE OR REPLACE FUNCTION public.admin_reset_user_password(
+  p_target_user_id UUID,
+  p_new_password TEXT
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth, extensions
+AS $$
+DECLARE
+  v_caller_role public.user_role;
+  v_target_user public.users%ROWTYPE;
+BEGIN
+  v_caller_role := public.current_user_role();
+  IF v_caller_role IS DISTINCT FROM 'AUDIT_PUSAT_ADMIN' THEN
+    RAISE EXCEPTION 'Akses ditolak: Hanya Audit Pusat Admin yang berwenang mereset password pengguna.';
+  END IF;
+
+  IF p_target_user_id IS NULL THEN
+    RAISE EXCEPTION 'Target user ID tidak boleh kosong.';
+  END IF;
+
+  IF p_new_password IS NULL OR LENGTH(TRIM(p_new_password)) < 6 THEN
+    RAISE EXCEPTION 'Password baru minimal harus terdiri dari 6 karakter.';
+  END IF;
+
+  SELECT * INTO v_target_user FROM public.users WHERE id = p_target_user_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Pengguna dengan ID tersebut tidak ditemukan.';
+  END IF;
+
+  UPDATE auth.users
+  SET 
+    encrypted_password = extensions.crypt(p_new_password, extensions.gen_salt('bf')),
+    updated_at = NOW()
+  WHERE id = p_target_user_id;
+
+  INSERT INTO public.audit_logs (
+    action,
+    entity,
+    entity_id,
+    user_id,
+    details
+  ) VALUES (
+    'RESET_PASSWORD',
+    'users',
+    p_target_user_id,
+    auth.uid(),
+    jsonb_build_object(
+      'target_user_id', p_target_user_id,
+      'target_username', v_target_user.username,
+      'target_name', v_target_user.name,
+      'reset_by', auth.uid(),
+      'timestamp', NOW()
+    )
+  );
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'message', 'Password untuk pengguna @' || COALESCE(v_target_user.username, v_target_user.name) || ' berhasil direset.'
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.admin_create_user(
+  p_username TEXT,
+  p_name TEXT,
+  p_role public.user_role,
+  p_branch_id UUID,
+  p_password TEXT
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth, extensions
+AS $$
+DECLARE
+  v_caller_role public.user_role;
+  v_clean_username TEXT;
+  v_email TEXT;
+  v_new_user_id UUID;
+  v_branch_exists BOOLEAN := FALSE;
+BEGIN
+  v_caller_role := public.current_user_role();
+  IF v_caller_role IS DISTINCT FROM 'AUDIT_PUSAT_ADMIN' THEN
+    RAISE EXCEPTION 'Akses ditolak: Hanya Audit Pusat Admin yang berwenang mendaftarkan akun secara langsung.';
+  END IF;
+
+  v_clean_username := LOWER(TRIM(p_username));
+  v_clean_username := REGEXP_REPLACE(v_clean_username, '[^a-z0-9_.]', '', 'g');
+
+  IF LENGTH(v_clean_username) < 3 THEN
+    RAISE EXCEPTION 'Username minimal 3 karakter alfanumerik.';
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM public.users WHERE LOWER(username) = v_clean_username) THEN
+    RAISE EXCEPTION 'Username "%" sudah digunakan akun lain.', v_clean_username;
+  END IF;
+
+  IF p_name IS NULL OR LENGTH(TRIM(p_name)) = 0 THEN
+    RAISE EXCEPTION 'Nama lengkap tidak boleh kosong.';
+  END IF;
+
+  IF p_password IS NULL OR LENGTH(TRIM(p_password)) < 6 THEN
+    RAISE EXCEPTION 'Password minimal 6 karakter.';
+  END IF;
+
+  IF p_role IN ('KASIR', 'SPV', 'KEPALA_CABANG', 'AUDIT_CABANG') THEN
+    IF p_branch_id IS NULL THEN
+      RAISE EXCEPTION 'Peran cabang wajib memilih Cabang Penempatan.';
+    END IF;
+    SELECT EXISTS (SELECT 1 FROM public.branches WHERE id = p_branch_id) INTO v_branch_exists;
+    IF NOT v_branch_exists THEN
+      RAISE EXCEPTION 'Cabang dengan ID tersebut tidak valid.';
+    END IF;
+  ELSE
+    p_branch_id := NULL;
+  END IF;
+
+  v_new_user_id := extensions.gen_random_uuid();
+  v_email := v_clean_username || '@branchcash.internal';
+
+  INSERT INTO auth.users (
+    instance_id,
+    id,
+    aud,
+    role,
+    email,
+    encrypted_password,
+    email_confirmed_at,
+    raw_app_meta_data,
+    raw_user_meta_data,
+    created_at,
+    updated_at,
+    confirmation_token
+  ) VALUES (
+    '00000000-0000-0000-0000-000000000000',
+    v_new_user_id,
+    'authenticated',
+    'authenticated',
+    v_email,
+    extensions.crypt(p_password, extensions.gen_salt('bf')),
+    NOW(),
+    '{"provider":"email","providers":["email"]}',
+    jsonb_build_object(
+      'name', TRIM(p_name),
+      'username', v_clean_username,
+      'role', p_role,
+      'branch_id', p_branch_id,
+      'status', 'ACTIVE'
+    ),
+    NOW(),
+    NOW(),
+    encode(extensions.gen_random_bytes(32), 'hex')
+  );
+
+  INSERT INTO public.users (
+    id,
+    username,
+    name,
+    email,
+    role,
+    branch_id,
+    status
+  ) VALUES (
+    v_new_user_id,
+    v_clean_username,
+    TRIM(p_name),
+    v_email,
+    p_role,
+    p_branch_id,
+    'ACTIVE'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    username = EXCLUDED.username,
+    name = EXCLUDED.name,
+    email = EXCLUDED.email,
+    role = EXCLUDED.role,
+    branch_id = EXCLUDED.branch_id,
+    status = 'ACTIVE',
+    updated_at = NOW();
+
+  INSERT INTO public.audit_logs (
+    action,
+    entity,
+    entity_id,
+    user_id,
+    details
+  ) VALUES (
+    'CREATE_USER_ADMIN',
+    'users',
+    v_new_user_id,
+    auth.uid(),
+    jsonb_build_object(
+      'user_id', v_new_user_id,
+      'username', v_clean_username,
+      'name', TRIM(p_name),
+      'role', p_role,
+      'branch_id', p_branch_id,
+      'created_by', auth.uid()
+    )
+  );
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'user_id', v_new_user_id,
+    'username', v_clean_username,
+    'name', TRIM(p_name),
+    'role', p_role,
+    'branch_id', p_branch_id,
+    'status', 'ACTIVE'
+  );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_reset_user_password(UUID, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_create_user(TEXT, TEXT, public.user_role, UUID, TEXT) TO authenticated;
+
+

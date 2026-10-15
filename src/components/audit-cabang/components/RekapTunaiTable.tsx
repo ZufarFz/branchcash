@@ -89,11 +89,10 @@ export const RekapTunaiTable: React.FC<RekapTunaiTableProps> = ({
             id="btn-toggle-unhide-detail"
             type="button"
             onClick={() => setIsExpandedDetails(!isExpandedDetails)}
-            className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer border shadow-2xs ${
-              isExpandedDetails
+            className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer border shadow-2xs ${isExpandedDetails
                 ? 'bg-sky-700 hover:bg-sky-800 text-white border-sky-800 ring-2 ring-sky-300'
                 : 'bg-white hover:bg-sky-100 text-sky-900 border-sky-300'
-            }`}
+              }`}
             title={isExpandedDetails ? 'Sembunyikan detail rincian kasir' : 'Tampilkan detail per rincian'}
           >
             {isExpandedDetails ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -141,13 +140,11 @@ export const RekapTunaiTable: React.FC<RekapTunaiTableProps> = ({
                       id="btn-switch-komputer-selisih"
                       type="button"
                       onClick={() => setPosColumnMode(posColumnMode === 'KOMPUTER' ? 'SELISIH' : 'KOMPUTER')}
-                      className={`relative inline-flex h-4.5 w-8 shrink-0 cursor-pointer items-center rounded-full border transition-colors duration-200 ${
-                        posColumnMode === 'SELISIH' ? 'bg-purple-700 border-purple-800' : 'bg-sky-200 border-sky-400'
-                      }`}
+                      className={`relative inline-flex h-4.5 w-8 shrink-0 cursor-pointer items-center rounded-full border transition-colors duration-200 ${posColumnMode === 'SELISIH' ? 'bg-purple-700 border-purple-800' : 'bg-sky-200 border-sky-400'
+                        }`}
                     >
-                      <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full shadow-xs transition duration-200 ${
-                        posColumnMode === 'SELISIH' ? 'translate-x-4 bg-white' : 'translate-x-0.5 bg-slate-800'
-                      }`} />
+                      <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full shadow-xs transition duration-200 ${posColumnMode === 'SELISIH' ? 'translate-x-4 bg-white' : 'translate-x-0.5 bg-slate-800'
+                        }`} />
                     </button>
                   </div>
                 </th>
@@ -209,15 +206,6 @@ export const RekapTunaiTable: React.FC<RekapTunaiTableProps> = ({
           </table>
         </div>
       </motion.div>
-
-      <div className="bg-purple-50/80 border border-purple-200/90 rounded-xl p-3 sm:px-4 flex items-center gap-3 text-xs text-purple-950 shadow-2xs">
-        <div className="w-7 h-7 rounded-lg bg-purple-200/80 text-purple-800 flex items-center justify-center shrink-0">
-          <Info className="w-4 h-4" />
-        </div>
-        <p className="leading-relaxed">
-          Audit Cabang klik tombol <strong className="text-purple-900 font-bold">+ Input</strong> pada kolom <strong className="text-purple-900 font-bold">Komputer</strong> untuk menginput nilai cash komputer (POS).
-        </p>
-      </div>
     </div>
   );
 };

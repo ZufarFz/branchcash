@@ -16,8 +16,12 @@ import { LoginView } from './components/auth/LoginView';
 import { isTabAuthorized, ROLE_PERMISSIONS } from './utils/rbac';
 
 const MainLayout: React.FC = () => {
-  const { currentUser } = useApp();
+  const { currentUser, cashSessions, selectedDate } = useApp();
   
+  const isActingCashier = currentUser.role === 'SPV' && (cashSessions || []).some(
+    (s) => s.actingCashierUserId === currentUser.id && s.businessDate === selectedDate
+  );
+
   // Navigation tab state initialized to current user's default allowed tab
   const [activeTab, setActiveTab] = useState<SidebarTab>(() => {
     return (ROLE_PERMISSIONS[currentUser.role]?.defaultTab as SidebarTab) || 'admin-pusat';
@@ -26,10 +30,10 @@ const MainLayout: React.FC = () => {
   // Automatically ensure active tab matches allowed permissions on role change
   useEffect(() => {
     const defaultTab = (ROLE_PERMISSIONS[currentUser.role]?.defaultTab as SidebarTab) || 'admin-pusat';
-    if (!isTabAuthorized(currentUser.role, activeTab)) {
+    if (!isTabAuthorized(currentUser.role, activeTab, isActingCashier)) {
       setActiveTab(defaultTab);
     }
-  }, [currentUser.role]);
+  }, [currentUser.role, isActingCashier]);
 
   // Sidebar collapse & mobile drawer states
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
@@ -43,7 +47,7 @@ const MainLayout: React.FC = () => {
   // Render view based on activeTab with RBAC permission guard
   const renderView = () => {
     // Check if current user role is authorized for the selected tab
-    if (!isTabAuthorized(currentUser.role, activeTab)) {
+    if (!isTabAuthorized(currentUser.role, activeTab, isActingCashier)) {
       return (
         <UnauthorizedView
           targetTab={activeTab}
@@ -67,6 +71,8 @@ const MainLayout: React.FC = () => {
         return <MasterDataView />;
       case 'dashboard-cabang':
         return <BranchReviewView />;
+      case 'dashboard-audit-cabang':
+        return <AuditCabangView initialTab="dashboard" />;
       case 'input-tunai':
         return <CashierView initialMode="cash" />;
       case 'input-non-tunai':
@@ -140,9 +146,9 @@ const AppContent: React.FC = () => {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-slate-200">
-        <div className="w-10 h-10 border-3 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
-        <p className="text-sm font-semibold tracking-wide text-slate-300">
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center text-slate-800">
+        <div className="w-10 h-10 border-3 border-indigo-600/20 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+        <p className="text-sm font-semibold tracking-wide text-slate-600">
           Memeriksa Sesi Autentikasi Supabase...
         </p>
       </div>

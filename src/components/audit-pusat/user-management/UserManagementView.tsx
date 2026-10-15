@@ -5,7 +5,10 @@ import { UserManagementStats } from './components/UserManagementStats';
 import { UserManagementFilterBar } from './components/UserManagementFilterBar';
 import { UserTableRow } from './components/UserTableRow';
 import { EditUserModal } from './modals/EditUserModal';
-import { Users, RefreshCw, UserCheck } from 'lucide-react';
+import { CreateUserModal } from './modals/CreateUserModal';
+import { ResetPasswordModal } from './modals/ResetPasswordModal';
+import { BatchImportUsersModal } from './modals/BatchImportUsersModal';
+import { Users, RefreshCw, UserCheck, FileSpreadsheet, UserPlus } from 'lucide-react';
 
 export const UserManagementView: React.FC = () => {
   const { 
@@ -26,6 +29,9 @@ export const UserManagementView: React.FC = () => {
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null);
+  const [isBatchImportOpen, setIsBatchImportOpen] = useState(false);
   const [actionMessage, setActionMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   const visibleUsers = useMemo(() => {
@@ -50,10 +56,9 @@ export const UserManagementView: React.FC = () => {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchName = u.name.toLowerCase().includes(q);
-        const matchEmail = u.email.toLowerCase().includes(q);
         const matchUsername = (u.username || '').toLowerCase().includes(q);
         const matchRole = u.role.toLowerCase().includes(q);
-        if (!matchName && !matchEmail && !matchUsername && !matchRole) return false;
+        if (!matchName && !matchUsername && !matchRole) return false;
       }
       return true;
     });
@@ -68,11 +73,7 @@ export const UserManagementView: React.FC = () => {
     setProcessingUserId(userId);
     try {
       const res = await approveUser(userId);
-      if (res.success) {
-        showNotification('Pengguna berhasil disetujui dan diaktifkan.', 'success');
-      } else {
-        showNotification(res.error || 'Gagal menyetujui pengguna.', 'error');
-      }
+      showNotification(res.success ? 'Pengguna berhasil disetujui dan diaktifkan.' : res.error || 'Gagal menyetujui pengguna.', res.success ? 'success' : 'error');
     } finally {
       setProcessingUserId(null);
     }
@@ -83,33 +84,12 @@ export const UserManagementView: React.FC = () => {
     setProcessingUserId(userId);
     try {
       const res = await rejectUser(userId);
-      if (res.success) {
-        showNotification('Pengguna berhasil ditolak (status non-aktif).', 'success');
-      } else {
-        showNotification(res.error || 'Gagal menolak pengguna.', 'error');
-      }
+      showNotification(res.success ? 'Pengguna berhasil ditolak (status non-aktif).' : res.error || 'Gagal menolak pengguna.', res.success ? 'success' : 'error');
     } finally {
       setProcessingUserId(null);
     }
   };
 
-  const handleToggleActive = async (userId: string, currentStatus: string) => {
-    const nextStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-    const actionLabel = nextStatus === 'ACTIVE' ? 'mengaktifkan kembali' : 'menonaktifkan';
-    if (!window.confirm(`Yakin ingin ${actionLabel} akun pengguna ini?`)) return;
-
-    setProcessingUserId(userId);
-    try {
-      const res = nextStatus === 'ACTIVE' ? await approveUser(userId) : await rejectUser(userId);
-      if (res.success) {
-        showNotification(`Akun berhasil di-${actionLabel}.`, 'success');
-      } else {
-        showNotification(res.error || `Gagal ${actionLabel} akun.`, 'error');
-      }
-    } finally {
-      setProcessingUserId(null);
-    }
-  };
 
   const handleSaveEditedUser = async (
     userId: string,
@@ -119,11 +99,7 @@ export const UserManagementView: React.FC = () => {
     try {
       const targetUser = allUsers.find((u) => u.id === userId);
       const res = await adminUpdateUser(userId, data, targetUser?.role);
-      if (res.success) {
-        showNotification('Data pengguna berhasil diperbarui.', 'success');
-      } else {
-        showNotification(res.error || 'Gagal memperbarui pengguna.', 'error');
-      }
+      showNotification(res.success ? 'Data pengguna berhasil diperbarui.' : res.error || 'Gagal memperbarui pengguna.', res.success ? 'success' : 'error');
     } finally {
       setProcessingUserId(null);
     }
@@ -145,23 +121,45 @@ export const UserManagementView: React.FC = () => {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => refreshFromSupabase()}
-          disabled={isSyncing}
-          className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 shadow-xs cursor-pointer transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-indigo-600' : ''}`} />
-          <span>Sinkronkan Data</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {currentUser.role === 'AUDIT_PUSAT_ADMIN' && (
+            <>
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer transition-colors"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>Tambah Pengguna</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsBatchImportOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer transition-colors"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                <span>Import Excel</span>
+              </button>
+            </>
+          )}
+
+          <button
+            type="button"
+            onClick={() => refreshFromSupabase()}
+            disabled={isSyncing}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 shadow-xs cursor-pointer transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-indigo-600' : ''}`} />
+            <span>Sinkronkan Data</span>
+          </button>
+        </div>
       </div>
 
       {/* Action Notification Alert */}
       {actionMessage && (
         <div className={`p-3 rounded-xl border text-xs font-medium flex items-center justify-between transition-all ${
-          actionMessage.type === 'success'
-            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-            : 'bg-rose-50 border-rose-200 text-rose-900'
+          actionMessage.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-rose-50 border-rose-200 text-rose-900'
         }`}>
           <span>{actionMessage.text}</span>
           <button type="button" onClick={() => setActionMessage(null)} className="font-bold cursor-pointer">×</button>
@@ -220,11 +218,7 @@ export const UserManagementView: React.FC = () => {
                     isProcessing={processingUserId === u.id}
                     onApprove={handleApprove}
                     onReject={handleReject}
-                    onToggleActive={handleToggleActive}
-                    onEdit={(target) => {
-                      setEditingUser(target);
-                      setIsEditModalOpen(true);
-                    }}
+                    onEdit={(target) => { setEditingUser(target); setIsEditModalOpen(true); }}
                   />
                 ))
               )}
@@ -233,18 +227,42 @@ export const UserManagementView: React.FC = () => {
         </div>
       </div>
 
+      {/* Modal Tambah Pengguna Tunggal */}
+      <CreateUserModal
+        isOpen={isCreateModalOpen}
+        branches={branches}
+        currentUserRole={currentUser.role}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={(msg) => { showNotification(msg, 'success'); refreshFromSupabase(); }}
+      />
+
       {/* Modal Edit Pengguna */}
       <EditUserModal
         isOpen={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setEditingUser(null);
-        }}
+        onClose={() => { setIsEditModalOpen(false); setEditingUser(null); }}
         user={editingUser}
         branches={branches}
         onSave={handleSaveEditedUser}
         isProcessing={processingUserId !== null}
         currentUserRole={currentUser.role}
+        onResetPassword={(target) => setResetPasswordUser(target)}
+      />
+
+      {/* Modal Reset Password */}
+      <ResetPasswordModal
+        isOpen={resetPasswordUser !== null}
+        user={resetPasswordUser}
+        onClose={() => setResetPasswordUser(null)}
+        onSuccess={(msg) => showNotification(msg, 'success')}
+      />
+
+      {/* Modal Batch Import Pengguna */}
+      <BatchImportUsersModal
+        isOpen={isBatchImportOpen}
+        branches={branches}
+        existingUsers={allUsers}
+        onClose={() => setIsBatchImportOpen(false)}
+        onSuccess={(msg) => { showNotification(msg, 'success'); refreshFromSupabase(); }}
       />
     </div>
   );

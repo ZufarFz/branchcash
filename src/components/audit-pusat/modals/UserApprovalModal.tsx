@@ -106,8 +106,6 @@ export const UserApprovalModal: React.FC<UserApprovalModalProps> = ({
                     </div>
 
                     <div className="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-2">
-                      <span>{u.email}</span>
-                      <span>•</span>
                       <span className="font-semibold text-slate-700">{u.role}</span>
                       {u.branchName && (
                         <>

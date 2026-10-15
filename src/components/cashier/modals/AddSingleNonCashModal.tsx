@@ -1,6 +1,7 @@
 import React from 'react';
 import { BankOption, PaymentMethodOption } from '../../../types';
 import { CreditCard, X, Plus } from 'lucide-react';
+import { SearchableSelect } from '../../common/SearchableSelect';
 
 interface AddSingleNonCashModalProps {
   isOpen: boolean;
@@ -31,6 +32,18 @@ export const AddSingleNonCashModal: React.FC<AddSingleNonCashModalProps> = ({
   paymentMethods,
   isSubmittingNc
 }) => {
+  const bankOptions = React.useMemo(() => {
+    return banks
+      .filter((b) => b.isActive !== false)
+      .map((b) => ({ value: b.name, label: b.name }));
+  }, [banks]);
+
+  const methodOptions = React.useMemo(() => {
+    return paymentMethods
+      .filter((m) => m.isActive !== false)
+      .map((m) => ({ value: m.name, label: m.name }));
+  }, [paymentMethods]);
+
   if (!isOpen) return null;
 
   return (
@@ -51,45 +64,33 @@ export const AddSingleNonCashModal: React.FC<AddSingleNonCashModalProps> = ({
         </div>
 
         <form onSubmit={onSubmit} className="p-5 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 relative z-20">
             <div>
               <label className="text-xs font-semibold text-slate-700 block mb-1">
                 Bank / Mesin EDC
               </label>
-              <select
+              <SearchableSelect
                 id="select-nc-bank"
                 value={ncBank}
-                onChange={(e) => setNcBank(e.target.value)}
-                className="w-full text-xs py-2 px-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-              >
-                {banks
-                  .filter((b) => b.isActive !== false)
-                  .map((b) => (
-                    <option key={b.id} value={b.name}>
-                      {b.name}
-                    </option>
-                  ))}
-              </select>
+                onChange={setNcBank}
+                options={bankOptions}
+                placeholder="Pilih Bank..."
+                searchPlaceholder="Cari bank..."
+              />
             </div>
 
             <div>
               <label className="text-xs font-semibold text-slate-700 block mb-1">
                 Metode Pembayaran
               </label>
-              <select
+              <SearchableSelect
                 id="select-nc-method"
                 value={ncMethod}
-                onChange={(e) => setNcMethod(e.target.value)}
-                className="w-full text-xs py-2 px-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-              >
-                {paymentMethods
-                  .filter((m) => m.isActive !== false)
-                  .map((m) => (
-                    <option key={m.id} value={m.name}>
-                      {m.name}
-                    </option>
-                  ))}
-              </select>
+                onChange={setNcMethod}
+                options={methodOptions}
+                placeholder="Pilih Metode..."
+                searchPlaceholder="Cari metode..."
+              />
             </div>
           </div>
 

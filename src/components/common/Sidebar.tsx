@@ -26,7 +26,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isCollapsed,
   onToggleCollapse
 }) => {
-  const { currentUser, currentBranch, reports, auditLogs, cashTransfers, allUsers, logout } = useApp();
+  const { currentUser, currentBranch, reports, auditLogs, cashTransfers, allUsers, cashSessions, selectedDate, logout } = useApp();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -38,6 +38,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     (t) => t.userId === currentUser.id && t.direction === 'IN' && t.status === 'PENDING'
   ).length;
   const pendingUsersCount = (allUsers || []).filter((u) => u.status === 'PENDING').length;
+
+  const isActingCashier = currentUser.role === 'SPV' && (cashSessions || []).some(
+    (s) => s.actingCashierUserId === currentUser.id && s.businessDate === selectedDate
+  );
 
   const menuSections = getSidebarMenuSections(
     currentUser.role,
@@ -52,7 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const authorizedSections = menuSections
     .map((section) => ({
       ...section,
-      items: section.items.filter((item) => isTabAuthorized(currentUser.role, item.id)),
+      items: section.items.filter((item) => isTabAuthorized(currentUser.role, item.id, isActingCashier)),
     }))
     .filter((section) => section.items.length > 0);
 

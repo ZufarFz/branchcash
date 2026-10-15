@@ -4,6 +4,7 @@ import { CreditCard, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { formatCurrency } from '../utils/cashierNonCashHelpers';
 import { BatchTxRow } from './BatchTxRow';
 import { BatchRapidInput } from './BatchRapidInput';
+import { SearchableSelect, SearchableSelectRef } from '../../common/SearchableSelect';
 
 interface BatchTxTableProps {
   banks: BankOption[];
@@ -80,44 +81,93 @@ export const BatchTxTable: React.FC<BatchTxTableProps> = ({
     );
   };
 
+  const bankSelectRef = React.useRef<SearchableSelectRef | null>(null);
+  const methodSelectRef = React.useRef<SearchableSelectRef | null>(null);
+
+  // Keyboard shortcut listener: F2 / Ctrl+B untuk Bank, F4 / Ctrl+M untuk Metode
+  React.useEffect(() => {
+    const handleGlobalShortcuts = (e: KeyboardEvent) => {
+      const isCtrlOrMeta = e.ctrlKey || e.metaKey;
+      const keyLower = e.key.toLowerCase();
+
+      // Buka dropdown Bank: F2 ATAU Ctrl+B / Cmd+B
+      if (e.key === 'F2' || (isCtrlOrMeta && keyLower === 'b')) {
+        e.preventDefault();
+        e.stopPropagation();
+        methodSelectRef.current?.close();
+        bankSelectRef.current?.open();
+      }
+      // Buka dropdown Metode: F4 ATAU Ctrl+M / Cmd+M
+      else if (e.key === 'F4' || (isCtrlOrMeta && keyLower === 'm')) {
+        e.preventDefault();
+        e.stopPropagation();
+        bankSelectRef.current?.close();
+        methodSelectRef.current?.open();
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalShortcuts);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalShortcuts);
+    };
+  }, []);
+
+  const bankOptions = React.useMemo(() => {
+    return banks
+      .filter((b) => b.isActive !== false)
+      .map((b) => ({ value: b.name, label: b.name }));
+  }, [banks]);
+
+  const methodOptions = React.useMemo(() => {
+    return paymentMethods
+      .filter((m) => m.isActive !== false)
+      .map((m) => ({ value: m.name, label: m.name }));
+  }, [paymentMethods]);
+
   return (
     <div className="w-full md:w-[460px] lg:w-[480px] shrink-0 flex flex-col bg-white min-h-0 overflow-hidden">
       {/* Filter Bar: Bank & Metode Pembayaran */}
-      <div className="p-3.5 bg-slate-50 border-b border-slate-200 grid grid-cols-2 gap-3 shrink-0">
+      <div className="p-3.5 bg-slate-50 border-b border-slate-200 grid grid-cols-2 gap-3 shrink-0 relative z-20">
         <div>
-          <label className="text-[11px] font-bold text-slate-700 block mb-1">
-            1. Pilih Bank / Mesin EDC
+          <label className="text-[11px] font-bold text-slate-700 flex items-center justify-between mb-1">
+            <span>1. Pilih Bank / Mesin EDC</span>
+            <span
+              className="px-1.5 py-0.5 rounded bg-slate-200/80 text-[10px] font-mono text-slate-600 font-semibold"
+              title="Shortcut keyboard: Tekan F2 atau Ctrl+B"
+            >
+              F2 / Ctrl+B
+            </span>
           </label>
-          <select
+          <SearchableSelect
+            ref={bankSelectRef}
             id="select-batch-nc-bank"
             value={batchBank}
-            onChange={(e) => handleBatchBankChange(e.target.value)}
-            className="w-full text-xs py-2 px-2.5 bg-white border border-slate-300 rounded-lg font-semibold focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all shadow-2xs"
-          >
-            {banks.filter(b => b.isActive !== false).map((b) => (
-              <option key={b.id} value={b.name}>
-                {b.name}
-              </option>
-            ))}
-          </select>
+            onChange={handleBatchBankChange}
+            options={bankOptions}
+            placeholder="Pilih Bank..."
+            searchPlaceholder="Cari bank..."
+          />
         </div>
 
         <div>
-          <label className="text-[11px] font-bold text-slate-700 block mb-1">
-            2. Pilih Metode Pembayaran
+          <label className="text-[11px] font-bold text-slate-700 flex items-center justify-between mb-1">
+            <span>2. Pilih Metode Pembayaran</span>
+            <span
+              className="px-1.5 py-0.5 rounded bg-slate-200/80 text-[10px] font-mono text-slate-600 font-semibold"
+              title="Shortcut keyboard: Tekan F4 atau Ctrl+M"
+            >
+              F4 / Ctrl+M
+            </span>
           </label>
-          <select
+          <SearchableSelect
+            ref={methodSelectRef}
             id="select-batch-nc-method"
             value={batchMethod}
-            onChange={(e) => handleBatchMethodChange(e.target.value)}
-            className="w-full text-xs py-2 px-2.5 bg-white border border-slate-300 rounded-lg font-semibold focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all shadow-2xs"
-          >
-            {paymentMethods.filter(m => m.isActive !== false).map((m) => (
-              <option key={m.id} value={m.name}>
-                {m.name}
-              </option>
-            ))}
-          </select>
+            onChange={handleBatchMethodChange}
+            options={methodOptions}
+            placeholder="Pilih Metode..."
+            searchPlaceholder="Cari metode..."
+          />
         </div>
       </div>
 

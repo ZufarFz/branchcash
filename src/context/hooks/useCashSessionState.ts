@@ -55,6 +55,7 @@ export const useCashSessionState = (
   const openCashSession = async (params: {
     businessDate: string;
     bandarUserId: string;
+    actingCashierUserId?: string | null;
     computerBeginningCash?: number;
     notes?: string;
   }): Promise<{ success: boolean; session?: BranchCashSession; error?: string }> => {
@@ -69,6 +70,7 @@ export const useCashSessionState = (
 
     const bandarUser = allUsers.find(u => u.id === params.bandarUserId);
     const bandarName = bandarUser?.name || 'Kasir Bandar';
+    const actingUser = params.actingCashierUserId ? allUsers.find(u => u.id === params.actingCashierUserId) : null;
 
     try {
       const res = await supabaseService.openCashSession({
@@ -76,8 +78,8 @@ export const useCashSessionState = (
         businessDate: params.businessDate,
         bandarUserId: params.bandarUserId,
         assignedBy: currentUser.id,
+        actingCashierUserId: params.actingCashierUserId,
         computerBeginningCash: params.computerBeginningCash,
-        notes: params.notes,
       });
 
       if (!res) {
@@ -89,6 +91,7 @@ export const useCashSessionState = (
         branchName: branch.name,
         bandarUserName: bandarName,
         assignedByName: currentUser.name,
+        actingCashierUserName: actingUser ? actingUser.name : undefined,
       };
 
       setCashSessions(prev => {
@@ -104,7 +107,7 @@ export const useCashSessionState = (
         userRole: currentUser.role,
         action: 'OPEN_CASH_SESSION',
         branchCode: branch.code,
-        summary: `Audit Cabang (${currentUser.name}) membuka sesi kas harian tanggal ${params.businessDate} dan menunjuk ${bandarName} sebagai Kasir Bandar.`,
+        summary: `Audit Cabang (${currentUser.name}) membuka sesi kas harian tanggal ${params.businessDate} dan menunjuk ${bandarName} sebagai Kasir Bandar${actingUser ? ` serta menugaskan SPV ${actingUser.name} sebagai kasir` : ''}.`,
         afterData: sessionWithNames,
         reason: params.notes || 'Penunjukan Kasir Bandar harian',
       };
@@ -127,15 +130,17 @@ export const useCashSessionState = (
     }
   };
 
-  // Update Kasir Bandar
+  // Update Kasir Bandar & SPV Merangkap Kasir
   const updateCashSessionBandar = async (
     sessionId: string,
-    newBandarUserId: string
+    newBandarUserId: string,
+    actingCashierUserId?: string | null
   ): Promise<{ success: boolean; error?: string }> => {
     try {
       const res = await supabaseService.updateCashSessionBandar({
         sessionId,
         newBandarUserId,
+        actingCashierUserId,
       });
 
       if (!res.success) {
@@ -144,6 +149,7 @@ export const useCashSessionState = (
 
       const bandarUser = allUsers.find(u => u.id === newBandarUserId);
       const bandarName = bandarUser?.name || 'Kasir Bandar';
+      const actingUser = actingCashierUserId ? allUsers.find(u => u.id === actingCashierUserId) : null;
 
       setCashSessions(prev => prev.map(s => {
         if (s.id === sessionId) {
@@ -151,6 +157,8 @@ export const useCashSessionState = (
             ...s,
             bandarUserId: newBandarUserId,
             bandarUserName: bandarName,
+            actingCashierUserId: actingCashierUserId !== undefined ? actingCashierUserId : s.actingCashierUserId,
+            actingCashierUserName: actingCashierUserId !== undefined ? (actingUser ? actingUser.name : undefined) : s.actingCashierUserName,
           };
         }
         return s;
@@ -164,9 +172,9 @@ export const useCashSessionState = (
         userRole: currentUser.role,
         action: 'UPDATE_SESSION_BANDAR',
         branchCode: currentBranch?.code || 'CBG',
-        summary: `Audit Cabang mengubah Kasir Bandar sesi ke ${bandarName}`,
-        afterData: { sessionId, newBandarUserId, bandarName },
-        reason: 'Perubahan Kasir Bandar sebelum transaksi dimulai',
+        summary: `Audit Cabang memperbarui sesi: Bandar -> ${bandarName}${actingUser ? `, SPV Pengganti -> ${actingUser.name}` : ''}`,
+        afterData: { sessionId, newBandarUserId, bandarName, actingCashierUserId },
+        reason: 'Perubahan penugasan sesi harian cabang',
       };
       addAuditLog(auditEntry);
       supabaseService.insertAuditLog({
@@ -176,7 +184,7 @@ export const useCashSessionState = (
         action: 'UPDATE_SESSION_BANDAR',
         branchCode: currentBranch?.code || 'CBG',
         summary: auditEntry.summary,
-        afterData: { sessionId, newBandarUserId, bandarName },
+        afterData: { sessionId, newBandarUserId, bandarName, actingCashierUserId },
         reason: auditEntry.reason,
       });
 

@@ -45,6 +45,12 @@ export const PenunjukanBandarTab: React.FC<PenunjukanBandarTabProps> = ({
     );
   }, [allUsers, currentBranchId]);
 
+  const branchSpvs = useMemo(() => {
+    return allUsers.filter(
+      (u) => u.role === 'SPV' && (!currentBranchId || u.branchId === currentBranchId)
+    );
+  }, [allUsers, currentBranchId]);
+
   const targetSession = useMemo(() => {
     return cashSessions.find(
       (s) => (s.branchId === currentBranchId || !currentBranchId) && s.businessDate === targetBandarDate
@@ -56,16 +62,14 @@ export const PenunjukanBandarTab: React.FC<PenunjukanBandarTabProps> = ({
     return Boolean(targetSession.transferCount !== undefined && targetSession.transferCount > 0);
   }, [targetSession]);
 
-  const handleSaveBandar = async (selectedBandarId: string) => {
+  const handleSaveBandar = async (selectedBandarId: string, selectedActingSpvId: string | null) => {
     if (targetSession) {
-      if (targetSession.bandarUserId !== selectedBandarId) {
-        return await updateCashSessionBandar(targetSession.id, selectedBandarId);
-      }
-      return { success: true };
+      return await updateCashSessionBandar(targetSession.id, selectedBandarId, selectedActingSpvId);
     }
     return await openCashSession({
       businessDate: targetBandarDate,
       bandarUserId: selectedBandarId,
+      actingCashierUserId: selectedActingSpvId,
       computerBeginningCash: 0,
     });
   };
@@ -82,6 +86,7 @@ export const PenunjukanBandarTab: React.FC<PenunjukanBandarTabProps> = ({
         targetSession={targetSession}
         isTargetSessionLocked={isTargetSessionLocked}
         branchCashiers={branchCashiers}
+        branchSpvs={branchSpvs}
         isAuditCabangRole={isAuditCabangRole}
         onSaveBandar={handleSaveBandar}
       />

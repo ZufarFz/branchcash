@@ -1442,7 +1442,595 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth, extensions;
 
+-- ==============================================================================
+-- UPDATE #23 - 2026-10-15
+-- DESKRIPSI: Role Snapshotting Transaksi & Delegasi Wewenang SPV Merangkap Kasir
+-- ==============================================================================
 
+-- 1. Tambah Kolom Snapshot Peran & Kolom SPV Merangkap Kasir
+ALTER TABLE public.branch_cash_sessions 
+  ADD COLUMN IF NOT EXISTS assigned_by_role VARCHAR(50) DEFAULT 'AUDIT_CABANG',
+  ADD COLUMN IF NOT EXISTS bandar_role VARCHAR(50) DEFAULT 'KASIR',
+  ADD COLUMN IF NOT EXISTS acting_cashier_user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS acting_cashier_role VARCHAR(50) DEFAULT NULL;
 
+ALTER TABLE public.cash_reports
+  ADD COLUMN IF NOT EXISTS cashier_role VARCHAR(50) DEFAULT 'KASIR',
+  ADD COLUMN IF NOT EXISTS computer_cash_role VARCHAR(50) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS verified_role VARCHAR(50) DEFAULT NULL;
 
+ALTER TABLE public.cashier_cash_transfers
+  ADD COLUMN IF NOT EXISTS user_role VARCHAR(50) DEFAULT 'KASIR',
+  ADD COLUMN IF NOT EXISTS partner_role VARCHAR(50) DEFAULT 'KASIR',
+  ADD COLUMN IF NOT EXISTS confirmed_role VARCHAR(50) DEFAULT NULL;
 
+ALTER TABLE public.cashier_operational_adjustments
+  ADD COLUMN IF NOT EXISTS created_by_role VARCHAR(50) DEFAULT 'AUDIT_CABANG',
+  ADD COLUMN IF NOT EXISTS cashier_role VARCHAR(50) DEFAULT 'KASIR';
+
+-- 2. Helper Function: Cek Apakah Pengguna Adalah SPV Merangkap Kasir yang Sah
+CREATE OR REPLACE FUNCTION public.is_acting_cashier(
+  p_branch_id UUID, 
+  p_business_date DATE, 
+  p_user_id UUID DEFAULT auth.uid()
+)
+RETURNS BOOLEAN AS $$
+BEGIN
+  IF p_user_id IS NULL OR p_branch_id IS NULL OR p_business_date IS NULL THEN
+    RETURN FALSE;
+  END IF;
+
+  RETURN EXISTS (
+    SELECT 1 
+    FROM public.branch_cash_sessions s
+    JOIN public.users u ON u.id = p_user_id
+    WHERE s.branch_id = p_branch_id
+      AND s.business_date = p_business_date
+      AND s.acting_cashier_user_id = p_user_id
+      AND u.role = 'SPV'
+  );
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public;
+
+-- 3. Triggers Otomatisasi Snapshot Peran (Immutable History)
+
+-- 3.1 Trigger Snapshot Sesi Kas
+CREATE OR REPLACE FUNCTION public.snapshot_session_roles()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.assigned_by IS NOT NULL THEN
+    SELECT role::TEXT INTO NEW.assigned_by_role FROM public.users WHERE id = NEW.assigned_by;
+  END IF;
+  IF NEW.bandar_user_id IS NOT NULL THEN
+    SELECT role::TEXT INTO NEW.bandar_role FROM public.users WHERE id = NEW.bandar_user_id;
+  END IF;
+  IF NEW.acting_cashier_user_id IS NOT NULL THEN
+    SELECT role::TEXT INTO NEW.acting_cashier_role FROM public.users WHERE id = NEW.acting_cashier_user_id;
+  ELSE
+    NEW.acting_cashier_role := NULL;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS trg_snapshot_session_roles ON public.branch_cash_sessions;
+CREATE TRIGGER trg_snapshot_session_roles
+  BEFORE INSERT OR UPDATE ON public.branch_cash_sessions
+  FOR EACH ROW EXECUTE FUNCTION public.snapshot_session_roles();
+
+-- 3.2 Trigger Snapshot Laporan Kas
+CREATE OR REPLACE FUNCTION public.snapshot_report_roles()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' OR (NEW.cashier_id IS DISTINCT FROM OLD.cashier_id) OR NEW.cashier_role IS NULL THEN
+    SELECT role::TEXT INTO NEW.cashier_role FROM public.users WHERE id = NEW.cashier_id;
+  END IF;
+
+  IF NEW.computer_cash_updated_by IS NOT NULL AND (TG_OP = 'INSERT' OR OLD.computer_cash_updated_by IS DISTINCT FROM NEW.computer_cash_updated_by OR NEW.computer_cash_role IS NULL) THEN
+    SELECT role::TEXT INTO NEW.computer_cash_role FROM public.users WHERE id = NEW.computer_cash_updated_by;
+  END IF;
+
+  IF NEW.verified_by IS NOT NULL AND (TG_OP = 'INSERT' OR OLD.verified_by IS DISTINCT FROM NEW.verified_by OR NEW.verified_role IS NULL) THEN
+    SELECT role::TEXT INTO NEW.verified_role FROM public.users WHERE id = NEW.verified_by;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS trg_snapshot_report_roles ON public.cash_reports;
+CREATE TRIGGER trg_snapshot_report_roles
+  BEFORE INSERT OR UPDATE ON public.cash_reports
+  FOR EACH ROW EXECUTE FUNCTION public.snapshot_report_roles();
+
+-- 3.3 Trigger Snapshot Mutasi Transfer Kas
+CREATE OR REPLACE FUNCTION public.snapshot_transfer_roles()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' OR NEW.user_role IS NULL THEN
+    SELECT role::TEXT INTO NEW.user_role FROM public.users WHERE id = NEW.user_id;
+  END IF;
+
+  IF TG_OP = 'INSERT' OR NEW.partner_role IS NULL THEN
+    SELECT role::TEXT INTO NEW.partner_role FROM public.users WHERE id = NEW.partner_user_id;
+  END IF;
+
+  IF NEW.confirmed_by IS NOT NULL AND (TG_OP = 'INSERT' OR OLD.confirmed_by IS DISTINCT FROM NEW.confirmed_by OR NEW.confirmed_role IS NULL) THEN
+    SELECT role::TEXT INTO NEW.confirmed_role FROM public.users WHERE id = NEW.confirmed_by;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS trg_snapshot_transfer_roles ON public.cashier_cash_transfers;
+CREATE TRIGGER trg_snapshot_transfer_roles
+  BEFORE INSERT OR UPDATE ON public.cashier_cash_transfers
+  FOR EACH ROW EXECUTE FUNCTION public.snapshot_transfer_roles();
+
+-- 3.4 Trigger Snapshot Penyesuaian Kas Operasional
+CREATE OR REPLACE FUNCTION public.snapshot_adjustment_roles()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' OR NEW.created_by_role IS NULL THEN
+    SELECT role::TEXT INTO NEW.created_by_role FROM public.users WHERE id = NEW.created_by;
+  END IF;
+
+  IF TG_OP = 'INSERT' OR NEW.cashier_role IS NULL THEN
+    SELECT role::TEXT INTO NEW.cashier_role FROM public.users WHERE id = NEW.cashier_id;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS trg_snapshot_adjustment_roles ON public.cashier_operational_adjustments;
+CREATE TRIGGER trg_snapshot_adjustment_roles
+  BEFORE INSERT OR UPDATE ON public.cashier_operational_adjustments
+  FOR EACH ROW EXECUTE FUNCTION public.snapshot_adjustment_roles();
+
+-- 4. Pembaruan Kebijakan RLS (Mendukung SPV yang Ditugaskan sebagai Acting Cashier)
+
+-- 4.1 RLS: cash_reports
+DROP POLICY IF EXISTS "cash_reports_insert_policy" ON public.cash_reports;
+CREATE POLICY "cash_reports_insert_policy" ON public.cash_reports
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    (
+      (public.current_user_role() = 'KASIR' OR public.is_acting_cashier(branch_id, business_date, auth.uid()))
+      AND branch_id = public.current_user_branch_id()
+      AND cashier_id = auth.uid()
+      AND status IN ('DRAFT', 'SUBMITTED')
+      AND computer_cash_total IS NULL
+    )
+    OR public.current_user_role() IN ('AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN')
+  );
+
+DROP POLICY IF EXISTS "cash_reports_update_policy" ON public.cash_reports;
+CREATE POLICY "cash_reports_update_policy" ON public.cash_reports
+  FOR UPDATE TO authenticated
+  USING (
+    public.current_user_role() IN ('AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN')
+    OR (
+      (public.current_user_role() = 'KASIR' OR public.is_acting_cashier(branch_id, business_date, auth.uid()))
+      AND cashier_id = auth.uid()
+      AND status IN ('DRAFT', 'SUBMITTED', 'REJECTED')
+    )
+    OR (
+      public.current_user_role() = 'AUDIT_CABANG'
+      AND branch_id = public.current_user_branch_id()
+    )
+    OR (
+      public.current_user_role() IN ('SPV', 'KEPALA_CABANG')
+      AND branch_id = public.current_user_branch_id()
+    )
+  )
+  WITH CHECK (
+    public.current_user_role() IN ('AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN')
+    OR (
+      (public.current_user_role() = 'KASIR' OR public.is_acting_cashier(branch_id, business_date, auth.uid()))
+      AND cashier_id = auth.uid()
+      AND status IN ('DRAFT', 'SUBMITTED')
+    )
+    OR (
+      public.current_user_role() = 'AUDIT_CABANG'
+      AND branch_id = public.current_user_branch_id()
+    )
+    OR (
+      public.current_user_role() IN ('SPV', 'KEPALA_CABANG')
+      AND branch_id = public.current_user_branch_id()
+    )
+  );
+
+DROP POLICY IF EXISTS "cash_reports_delete_policy" ON public.cash_reports;
+CREATE POLICY "cash_reports_delete_policy" ON public.cash_reports
+  FOR DELETE TO authenticated
+  USING (
+    (
+      (public.current_user_role() = 'KASIR' OR public.is_acting_cashier(branch_id, business_date, auth.uid())) 
+      AND cashier_id = auth.uid() 
+      AND status = 'DRAFT'
+    )
+    OR public.current_user_role() IN ('AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN')
+  );
+
+-- 4.2 RLS: cash_report_denominations
+DROP POLICY IF EXISTS "denoms_modify_policy" ON public.cash_report_denominations;
+CREATE POLICY "denoms_modify_policy" ON public.cash_report_denominations
+  FOR ALL TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.cash_reports r
+      WHERE r.id = cash_report_denominations.report_id
+      AND (
+        public.current_user_role() IN ('AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN')
+        OR (
+          (public.current_user_role() = 'KASIR' OR public.is_acting_cashier(r.branch_id, r.business_date, auth.uid()))
+          AND r.cashier_id = auth.uid()
+          AND r.status IN ('DRAFT', 'SUBMITTED', 'REJECTED')
+        )
+      )
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.cash_reports r
+      WHERE r.id = cash_report_denominations.report_id
+      AND (
+        public.current_user_role() IN ('AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN')
+        OR (
+          (public.current_user_role() = 'KASIR' OR public.is_acting_cashier(r.branch_id, r.business_date, auth.uid()))
+          AND r.cashier_id = auth.uid()
+          AND r.status IN ('DRAFT', 'SUBMITTED', 'REJECTED')
+        )
+      )
+    )
+  );
+
+-- 4.3 RLS: non_cash_transactions
+DROP POLICY IF EXISTS "non_cash_insert_policy" ON public.non_cash_transactions;
+CREATE POLICY "non_cash_insert_policy" ON public.non_cash_transactions
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    (
+      (
+        public.current_user_role() = 'KASIR'
+        OR EXISTS (
+          SELECT 1 FROM public.cash_reports r
+          WHERE r.id = non_cash_transactions.report_id
+            AND public.is_acting_cashier(r.branch_id, r.business_date, auth.uid())
+        )
+      )
+      AND cashier_id = auth.uid()
+    )
+    OR public.current_user_role() IN ('AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN')
+  );
+
+DROP POLICY IF EXISTS "non_cash_update_policy" ON public.non_cash_transactions;
+CREATE POLICY "non_cash_update_policy" ON public.non_cash_transactions
+  FOR UPDATE TO authenticated
+  USING (
+    public.current_user_role() IN ('PERBANKAN', 'AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN')
+    OR (
+      (
+        public.current_user_role() = 'KASIR'
+        OR EXISTS (
+          SELECT 1 FROM public.cash_reports r
+          WHERE r.id = non_cash_transactions.report_id
+            AND public.is_acting_cashier(r.branch_id, r.business_date, auth.uid())
+        )
+      )
+      AND cashier_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    public.current_user_role() IN ('PERBANKAN', 'AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN')
+    OR (
+      (
+        public.current_user_role() = 'KASIR'
+        OR EXISTS (
+          SELECT 1 FROM public.cash_reports r
+          WHERE r.id = non_cash_transactions.report_id
+            AND public.is_acting_cashier(r.branch_id, r.business_date, auth.uid())
+        )
+      )
+      AND cashier_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "non_cash_delete_policy" ON public.non_cash_transactions;
+CREATE POLICY "non_cash_delete_policy" ON public.non_cash_transactions
+  FOR DELETE TO authenticated
+  USING (
+    (
+      (
+        public.current_user_role() = 'KASIR'
+        OR EXISTS (
+          SELECT 1 FROM public.cash_reports r
+          WHERE r.id = non_cash_transactions.report_id
+            AND public.is_acting_cashier(r.branch_id, r.business_date, auth.uid())
+        )
+      )
+      AND cashier_id = auth.uid()
+    )
+    OR public.current_user_role() IN ('AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN')
+  );
+
+-- 4.4 RLS: cashier_cash_transfers
+DROP POLICY IF EXISTS "cashier_cash_transfers_insert_policy" ON public.cashier_cash_transfers;
+CREATE POLICY "cashier_cash_transfers_insert_policy" ON public.cashier_cash_transfers
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    public.current_user_role() IN ('AUDIT_PUSAT', 'AUDIT_PUSAT_ADMIN')
+    OR (
+      (
+        public.current_user_role() IN ('KASIR', 'AUDIT_CABANG')
+        OR public.is_acting_cashier(branch_id, business_date, auth.uid())
+      )
+      AND branch_id = public.current_user_branch_id()
+    )
+  );
+
+-- 5. Backfill Data Historis yang Sudah Ada
+UPDATE public.branch_cash_sessions s
+SET 
+  assigned_by_role = COALESCE(s.assigned_by_role, (SELECT role::TEXT FROM public.users WHERE id = s.assigned_by), 'AUDIT_CABANG'),
+  bandar_role = COALESCE(s.bandar_role, (SELECT role::TEXT FROM public.users WHERE id = s.bandar_user_id), 'KASIR')
+WHERE s.assigned_by_role IS NULL OR s.bandar_role IS NULL;
+
+UPDATE public.cash_reports r
+SET 
+  cashier_role = COALESCE(r.cashier_role, (SELECT role::TEXT FROM public.users WHERE id = r.cashier_id), 'KASIR'),
+  computer_cash_role = COALESCE(r.computer_cash_role, (SELECT role::TEXT FROM public.users WHERE id = r.computer_cash_updated_by)),
+  verified_role = COALESCE(r.verified_role, (SELECT role::TEXT FROM public.users WHERE id = r.verified_by))
+WHERE r.cashier_role IS NULL;
+
+UPDATE public.cashier_cash_transfers t
+SET
+  user_role = COALESCE(t.user_role, (SELECT role::TEXT FROM public.users WHERE id = t.user_id), 'KASIR'),
+  partner_role = COALESCE(t.partner_role, (SELECT role::TEXT FROM public.users WHERE id = t.partner_user_id), 'KASIR'),
+  confirmed_role = COALESCE(t.confirmed_role, (SELECT role::TEXT FROM public.users WHERE id = t.confirmed_by))
+WHERE t.user_role IS NULL OR t.partner_role IS NULL;
+
+UPDATE public.cashier_operational_adjustments a
+SET
+  created_by_role = COALESCE(a.created_by_role, (SELECT role::TEXT FROM public.users WHERE id = a.created_by), 'AUDIT_CABANG'),
+  cashier_role = COALESCE(a.cashier_role, (SELECT role::TEXT FROM public.users WHERE id = a.cashier_id), 'KASIR')
+WHERE a.created_by_role IS NULL OR a.cashier_role IS NULL;
+
+-- ==============================================================================
+-- UPDATE #24 - 2026-10-15: RPC Admin Reset User Password & Admin Create User (Batch Import)
+-- ==============================================================================
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- 1. RPC: Reset Password Pengguna oleh Audit Pusat Admin
+CREATE OR REPLACE FUNCTION public.admin_reset_user_password(
+  p_target_user_id UUID,
+  p_new_password TEXT
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth, extensions
+AS $$
+DECLARE
+  v_caller_role public.user_role;
+  v_target_user public.users%ROWTYPE;
+BEGIN
+  -- 1. Verifikasi hak akses Super Admin
+  v_caller_role := public.current_user_role();
+  IF v_caller_role IS DISTINCT FROM 'AUDIT_PUSAT_ADMIN' THEN
+    RAISE EXCEPTION 'Akses ditolak: Hanya Audit Pusat Admin yang berwenang mereset password pengguna.';
+  END IF;
+
+  -- 2. Validasi input
+  IF p_target_user_id IS NULL THEN
+    RAISE EXCEPTION 'Target user ID tidak boleh kosong.';
+  END IF;
+
+  IF p_new_password IS NULL OR LENGTH(TRIM(p_new_password)) < 6 THEN
+    RAISE EXCEPTION 'Password baru minimal harus terdiri dari 6 karakter.';
+  END IF;
+
+  -- 3. Cek user target
+  SELECT * INTO v_target_user FROM public.users WHERE id = p_target_user_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Pengguna dengan ID tersebut tidak ditemukan.';
+  END IF;
+
+  -- 4. Update password di auth.users dengan bcrypt hash
+  UPDATE auth.users
+  SET 
+    encrypted_password = extensions.crypt(p_new_password, extensions.gen_salt('bf')),
+    updated_at = NOW()
+  WHERE id = p_target_user_id;
+
+  -- 5. Catat audit log
+  INSERT INTO public.audit_logs (
+    action,
+    entity,
+    entity_id,
+    user_id,
+    details
+  ) VALUES (
+    'RESET_PASSWORD',
+    'users',
+    p_target_user_id,
+    auth.uid(),
+    jsonb_build_object(
+      'target_user_id', p_target_user_id,
+      'target_username', v_target_user.username,
+      'target_name', v_target_user.name,
+      'reset_by', auth.uid(),
+      'timestamp', NOW()
+    )
+  );
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'message', 'Password untuk pengguna @' || COALESCE(v_target_user.username, v_target_user.name) || ' berhasil direset.'
+  );
+END;
+$$;
+
+-- 2. RPC: Pendaftaran Pengguna Langsung Aktif oleh Admin (Single / Batch Import)
+CREATE OR REPLACE FUNCTION public.admin_create_user(
+  p_username TEXT,
+  p_name TEXT,
+  p_role public.user_role,
+  p_branch_id UUID,
+  p_password TEXT
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth, extensions
+AS $$
+DECLARE
+  v_caller_role public.user_role;
+  v_clean_username TEXT;
+  v_email TEXT;
+  v_new_user_id UUID;
+  v_branch_exists BOOLEAN := FALSE;
+BEGIN
+  -- 1. Verifikasi hak akses Super Admin
+  v_caller_role := public.current_user_role();
+  IF v_caller_role IS DISTINCT FROM 'AUDIT_PUSAT_ADMIN' THEN
+    RAISE EXCEPTION 'Akses ditolak: Hanya Audit Pusat Admin yang berwenang mendaftarkan akun secara langsung.';
+  END IF;
+
+  -- 2. Bersihkan dan validasi username
+  v_clean_username := LOWER(TRIM(p_username));
+  v_clean_username := REGEXP_REPLACE(v_clean_username, '[^a-z0-9_.]', '', 'g');
+
+  IF LENGTH(v_clean_username) < 3 THEN
+    RAISE EXCEPTION 'Username minimal 3 karakter alfanumerik.';
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM public.users WHERE LOWER(username) = v_clean_username) THEN
+    RAISE EXCEPTION 'Username "%" sudah digunakan akun lain.', v_clean_username;
+  END IF;
+
+  IF p_name IS NULL OR LENGTH(TRIM(p_name)) = 0 THEN
+    RAISE EXCEPTION 'Nama lengkap tidak boleh kosong.';
+  END IF;
+
+  IF p_password IS NULL OR LENGTH(TRIM(p_password)) < 6 THEN
+    RAISE EXCEPTION 'Password minimal 6 karakter.';
+  END IF;
+
+  -- Validasi cabang untuk role cabang
+  IF p_role IN ('KASIR', 'SPV', 'KEPALA_CABANG', 'AUDIT_CABANG') THEN
+    IF p_branch_id IS NULL THEN
+      RAISE EXCEPTION 'Peran cabang wajib memilih Cabang Penempatan.';
+    END IF;
+    SELECT EXISTS (SELECT 1 FROM public.branches WHERE id = p_branch_id) INTO v_branch_exists;
+    IF NOT v_branch_exists THEN
+      RAISE EXCEPTION 'Cabang dengan ID tersebut tidak valid.';
+    END IF;
+  ELSE
+    p_branch_id := NULL;
+  END IF;
+
+  v_new_user_id := extensions.gen_random_uuid();
+  v_email := v_clean_username || '@branchcash.internal';
+
+  -- 3. Insert ke auth.users (langsung terkonfirmasi)
+  INSERT INTO auth.users (
+    instance_id,
+    id,
+    aud,
+    role,
+    email,
+    encrypted_password,
+    email_confirmed_at,
+    raw_app_meta_data,
+    raw_user_meta_data,
+    created_at,
+    updated_at,
+    confirmation_token
+  ) VALUES (
+    '00000000-0000-0000-0000-000000000000',
+    v_new_user_id,
+    'authenticated',
+    'authenticated',
+    v_email,
+    extensions.crypt(p_password, extensions.gen_salt('bf')),
+    NOW(),
+    '{"provider":"email","providers":["email"]}',
+    jsonb_build_object(
+      'name', TRIM(p_name),
+      'username', v_clean_username,
+      'role', p_role,
+      'branch_id', p_branch_id,
+      'status', 'ACTIVE'
+    ),
+    NOW(),
+    NOW(),
+    encode(extensions.gen_random_bytes(32), 'hex')
+  );
+
+  -- 4. Pastikan data profil di public.users berstatus ACTIVE
+  INSERT INTO public.users (
+    id,
+    username,
+    name,
+    email,
+    role,
+    branch_id,
+    status
+  ) VALUES (
+    v_new_user_id,
+    v_clean_username,
+    TRIM(p_name),
+    v_email,
+    p_role,
+    p_branch_id,
+    'ACTIVE'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    username = EXCLUDED.username,
+    name = EXCLUDED.name,
+    email = EXCLUDED.email,
+    role = EXCLUDED.role,
+    branch_id = EXCLUDED.branch_id,
+    status = 'ACTIVE',
+    updated_at = NOW();
+
+  -- 5. Audit Log
+  INSERT INTO public.audit_logs (
+    action,
+    entity,
+    entity_id,
+    user_id,
+    details
+  ) VALUES (
+    'CREATE_USER_ADMIN',
+    'users',
+    v_new_user_id,
+    auth.uid(),
+    jsonb_build_object(
+      'user_id', v_new_user_id,
+      'username', v_clean_username,
+      'name', TRIM(p_name),
+      'role', p_role,
+      'branch_id', p_branch_id,
+      'created_by', auth.uid()
+    )
+  );
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'user_id', v_new_user_id,
+    'username', v_clean_username,
+    'name', TRIM(p_name),
+    'role', p_role,
+    'branch_id', p_branch_id,
+    'status', 'ACTIVE'
+  );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_reset_user_password(UUID, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_create_user(TEXT, TEXT, public.user_role, UUID, TEXT) TO authenticated;

@@ -147,6 +147,7 @@ export const reportFetchService = {
           branchCode: branchObj.code || 'CBG',
           cashierId: raw.cashier_id,
           cashierName: cashierObj.name || 'Kasir',
+          cashierRole: raw.cashier_role || undefined,
           status: raw.status || 'DRAFT',
           denominations,
           totalCash,
@@ -157,6 +158,7 @@ export const reportFetchService = {
           computerCashTunai: compTunai,
           computerCashNonTunai: compNonTunai,
           computerCashTotal: compTotal,
+          computerCashRole: raw.computer_cash_role || undefined,
           totalExpenseAdjustment: expenseAdj,
           totalIncomeAdjustment: incomeAdj,
           varianceTunai: compTunai !== null ? (totalCash - (compTunai - expenseAdj + incomeAdj)) : null,
@@ -166,6 +168,7 @@ export const reportFetchService = {
           updatedDate: raw.updated_at || dateIso,
           notes: raw.notes || raw.computer_cash_notes || '',
           verifiedAt: (raw.verified_at || raw.approved_at) ? new Date(raw.verified_at || raw.approved_at).toLocaleString('id-ID') : undefined,
+          verifiedRole: raw.verified_role || undefined,
         };
       });
 

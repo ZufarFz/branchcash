@@ -51,10 +51,7 @@ export const authLoginService = {
             if (userByEmailPrefix?.email) {
               emailToAuth = userByEmailPrefix.email;
             } else {
-              return {
-                user: null,
-                error: `Username "${trimmedIdentifier}" tidak ditemukan.`,
-              };
+              emailToAuth = `${cleanUsername}@branchcash.internal`;
             }
           }
         }
@@ -68,9 +65,9 @@ export const authLoginService = {
       if (error) {
         let msg = error.message;
         if (msg.includes('Invalid login credentials')) {
-          msg = 'Email/Username atau password salah. Silakan coba lagi.';
+          msg = 'Username atau password salah. Silakan coba lagi.';
         } else if (msg.includes('Email not confirmed')) {
-          msg = 'Email belum dikonfirmasi. Periksa kotak masuk email Anda.';
+          msg = 'Akun belum aktif atau menunggu persetujuan Administrator.';
         }
         return { user: null, error: msg };
       }

@@ -1,8 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../../context/AppContext';
-import { AlertCircle } from 'lucide-react';
-import { MutasiMetricsCards } from '../components/MutasiMetricsCards';
-import { CashierTransferSummariesTable } from '../components/CashierTransferSummariesTable';
+import { BandarTransferSummaryTable, BandarTransferSummaryItem } from '../components/BandarTransferSummaryTable';
+import { CashierTransferSummariesTable, CashierTransferSummaryItem } from '../components/CashierTransferSummariesTable';
 import { MutasiLogTable } from '../components/MutasiLogTable';
 
 export const MutasiKasTab: React.FC = () => {
@@ -42,31 +41,50 @@ export const MutasiKasTab: React.FC = () => {
     return branchTransfers.filter((t) => t.direction === 'OUT');
   }, [branchTransfers]);
 
-  const mutasiMetrics = useMemo(() => {
-    const modalConfirmed = uniqueBranchTransfers
-      .filter((t) => t.transferType === 'MODAL' && t.status === 'CONFIRMED')
+  // 1. Ringkasan Khusus Kasir Bandar
+  const bandarTransferSummary = useMemo<BandarTransferSummaryItem | null>(() => {
+    if (!mutasiSession?.bandarUserId) return null;
+    const bandarUser = allUsers.find((u) => u.id === mutasiSession.bandarUserId);
+    if (!bandarUser) return null;
+
+    const modalSent = branchTransfers.filter(
+      (t) => t.userId === bandarUser.id && t.direction === 'OUT' && t.transferType === 'MODAL'
+    );
+    const modalDibagiSah = modalSent
+      .filter((t) => t.status === 'CONFIRMED')
+      .reduce((acc, t) => acc + Math.abs(t.amount), 0);
+    const modalDibagiPending = modalSent
+      .filter((t) => t.status === 'PENDING')
       .reduce((acc, t) => acc + Math.abs(t.amount), 0);
 
-    const modalPending = uniqueBranchTransfers
-      .filter((t) => t.transferType === 'MODAL' && t.status === 'PENDING')
+    const setorReceived = branchTransfers.filter(
+      (t) => t.userId === bandarUser.id && t.direction === 'IN' && t.transferType === 'SETOR'
+    );
+    const setoranDiterimaSah = setorReceived
+      .filter((t) => t.status === 'CONFIRMED')
+      .reduce((acc, t) => acc + t.amount, 0);
+    const setoranDiterimaPending = setorReceived
+      .filter((t) => t.status === 'PENDING')
       .reduce((acc, t) => acc + Math.abs(t.amount), 0);
 
-    const setorConfirmed = uniqueBranchTransfers
-      .filter((t) => t.transferType === 'SETOR' && t.status === 'CONFIRMED')
-      .reduce((acc, t) => acc + Math.abs(t.amount), 0);
+    const netKas = setoranDiterimaSah - modalDibagiSah;
 
-    const setorPending = uniqueBranchTransfers
-      .filter((t) => t.transferType === 'SETOR' && t.status === 'PENDING')
-      .reduce((acc, t) => acc + Math.abs(t.amount), 0);
+    return {
+      bandar: bandarUser,
+      modalDibagiSah,
+      modalDibagiPending,
+      setoranDiterimaSah,
+      setoranDiterimaPending,
+      netKas,
+    };
+  }, [mutasiSession, allUsers, branchTransfers]);
 
-    const netBandar = setorConfirmed - modalConfirmed;
+  // 2. Ringkasan Khusus Kasir Harian (Exclude Bandar)
+  const cashierTransferSummaries = useMemo<CashierTransferSummaryItem[]>(() => {
+    const bandarId = mutasiSession?.bandarUserId;
+    const dailyCashiers = branchCashiers.filter((c) => c.id !== bandarId);
 
-    return { modalConfirmed, modalPending, setorConfirmed, setorPending, netBandar };
-  }, [uniqueBranchTransfers]);
-
-  const cashierTransferSummaries = useMemo(() => {
-    return branchCashiers.map((c) => {
-      const isBandar = mutasiSession?.bandarUserId === c.id;
+    return dailyCashiers.map((c) => {
       const received = branchTransfers.filter((t) => t.userId === c.id && t.direction === 'IN');
       const sent = branchTransfers.filter((t) => t.userId === c.id && t.direction === 'OUT');
 
@@ -90,7 +108,6 @@ export const MutasiKasTab: React.FC = () => {
 
       return {
         cashier: c,
-        isBandar,
         modalReceivedSah,
         modalReceivedPending,
         setorSentSah,
@@ -106,56 +123,23 @@ export const MutasiKasTab: React.FC = () => {
       .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
   }, [uniqueBranchTransfers, mutasiStatusFilter]);
 
-  const pendingBranchTransfersCount = useMemo(() => {
-    return uniqueBranchTransfers.filter((t) => t.status === 'PENDING').length;
-  }, [uniqueBranchTransfers]);
-
   return (
     <div className="space-y-4 animate-in fade-in duration-200">
-      {/* Sleek Toolbar Status & Filter */}
-      <div className="bg-white rounded-xl border border-slate-200 px-4 py-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-2.5">
-        <div className="flex items-center gap-2">
-          {mutasiSession ? (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
-              Bandar: {mutasiSession.bandarUserName || 'Kasir Bandar'}
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-              <AlertCircle className="w-3.5 h-3.5 text-slate-400" />
-              <span>Sesi Belum Dibuka</span>
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-1">
-          {(['ALL', 'CONFIRMED', 'PENDING', 'REJECTED'] as const).map((st) => (
-            <button
-              key={st}
-              type="button"
-              onClick={() => setMutasiStatusFilter(st)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${mutasiStatusFilter === st
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-            >
-              {st === 'ALL' ? 'Semua' : st === 'CONFIRMED' ? 'Sah' : st === 'PENDING' ? 'Pending' : 'Ditolak'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <MutasiMetricsCards
-        mutasiMetrics={mutasiMetrics}
-        pendingBranchTransfersCount={pendingBranchTransfersCount}
+      {/* Tabel 1: Ringkasan Khusus Bandar */}
+      <BandarTransferSummaryTable
+        summary={bandarTransferSummary}
       />
 
+      {/* Tabel 2: Ringkasan Khusus Kasir Harian */}
       <CashierTransferSummariesTable
         summaries={cashierTransferSummaries}
-        mutasiDateFilter={selectedDate}
       />
 
+      {/* Tabel 3: Log Transaksi Mutasi dengan Dropdown Filter */}
       <MutasiLogTable
         displayedTransfers={displayedTransfers}
+        statusFilter={mutasiStatusFilter}
+        onStatusFilterChange={setMutasiStatusFilter}
       />
     </div>
   );
